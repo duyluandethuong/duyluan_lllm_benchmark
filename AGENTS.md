@@ -59,6 +59,13 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   overlapped, and both slowed down about 2x (Qwen3.6 A3B decode went from ~50 to 27 tok/s). bench.py now holds
   `results/.bench.lock` and refuses to start a second run (--download-only is exempt). Engine logs are named
   with the pid, so parallel processes can't overwrite each other's logs.
+- **Background load matters a lot.** On 2026-10-10, Xcode builds, a VM and the iOS Simulator running alongside
+  cut Qwen3.8 27B llama.cpp decode from 16.9 to 10.3 tok/s. bench.py now samples CPU load before starting and
+  warns with the top processes (`warn_if_busy`); it warns but doesn't block. Ask the user to idle the machine.
+- LM Studio launched from an agent shell quit by itself within seconds (no crash report). The user had to open it
+  by hand. If `lms server status` says not running, ask the user to open LM Studio.
+- Gemma 4 E4B and 26B A4B ignore "exactly 30 placements" and keep emitting valid entries until the 4096 cap.
+  That's the model, not looping; Qwen3.8 returns exactly 30.
 - Every run's generated text goes to `results/outputs/<run>/`. Check it when tokens_out hits the
   --max-tokens cap (looping, or thinking despite reasoning off).
 
@@ -74,5 +81,9 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   which isn't comparable with the other engines. Also on that run the stream stopped mid-reasoning with
   "Model unloaded" (it overlapped the parallel run, so possibly memory pressure). To do: find another way to turn
   thinking off (e.g. /v1/chat/completions with chat_template_kwargs) and retest on an idle machine.
+- 2026-10-10: no clean Mac numbers yet. In results/2026-10-09_200053_LuanM5Max (llama.cpp only, left uncommitted)
+  the Gemma rows are clean but the Qwen rows overlapped another run. A clean llama.cpp+MLX run was stopped because the
+  machine was busy (Xcode/VM). Still to do on an idle Mac: run `--all -e llamacpp,mlx`, fix LM Studio's reasoning
+  toggle, then `-e lmstudio`.
 - mlx-lm's Qwen3.8 27B run generated the full 4096-token cap (llama.cpp stopped at ~1.7K). Check
   results/outputs for looping once a clean run exists.

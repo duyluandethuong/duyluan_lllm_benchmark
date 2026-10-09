@@ -145,6 +145,29 @@ def release_lock() -> None:
         pass
 
 
+def warn_if_busy(threshold: float = 25.0) -> None:
+    """LLM speed is memory-bandwidth bound: builds, VMs or simulators running alongside
+    lower the numbers. Warn (don't block) and name the biggest consumers."""
+    procs = list(psutil.process_iter(["name"]))
+    for p in procs:
+        try:
+            p.cpu_percent(None)  # prime per-process counters
+        except psutil.Error:
+            pass
+    load = psutil.cpu_percent(interval=2.0)
+    if load < threshold:
+        return
+    top = []
+    for p in procs:
+        try:
+            top.append((p.cpu_percent(None), p.info["name"] or "?"))
+        except psutil.Error:
+            pass
+    busiest = ", ".join(f"{n} {c:.0f}%" for c, n in sorted(top, reverse=True)[:5])
+    print(f"! Machine is busy ({load:.0f}% CPU): {busiest}\n"
+          f"  Close these for clean numbers; results will be lower than the machine can do.")
+
+
 def main() -> None:
     # Windows consoles/redirects default to cp1252; never crash on a table character.
     for stream in (sys.stdout, sys.stderr):
@@ -179,6 +202,7 @@ def main() -> None:
     results: list[Result] = []
     if not args.download_only:
         acquire_lock()
+        warn_if_busy()
     try:
         for model in selected:
             for b in engines:
