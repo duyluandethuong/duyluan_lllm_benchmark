@@ -46,16 +46,17 @@ def main() -> None:
             )
             sampler = make_sampler(temp=req["temperature"])
             t0 = time.perf_counter()
-            ttft, last = None, None
+            ttft, last, parts = None, None, []
             for r in stream_generate(model, tokenizer, prompt, max_tokens=req["max_tokens"], sampler=sampler):
                 if ttft is None:
                     ttft = time.perf_counter() - t0
+                parts.append(r.text)
                 last = r
             total = time.perf_counter() - t0
             send({
                 "tokens_in": last.prompt_tokens, "tokens_out": last.generation_tokens,
                 "ttft_s": ttft, "prefill_tps": last.prompt_tps, "decode_tps": last.generation_tps,
-                "total_s": total, "peak_memory_gb": last.peak_memory,
+                "total_s": total, "peak_memory_gb": last.peak_memory, "text": "".join(parts),
             })
         except Exception as e:  # noqa: BLE001
             send({"error": f"{type(e).__name__}: {e}"})

@@ -49,6 +49,16 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   is automatic. We only force `-ngl 0` for CPU placement.
 - mlx-lm 0.32 loads the Qwen3.5/3.6/3.8 4-bit repos from mlx-community fine (they include vision files, which are ignored).
 - Qwen3.6/3.8 are hybrid attention models: only 1 in 4 layers has a KV cache, so the KV estimate is small.
+- Gemma 4 mixes a few global layers (num_global_key_value_heads x global_head_dim 512) with sliding-window
+  layers (cache capped at sliding_window). `Arch` has sliding_* fields for this. It ignores KV sharing
+  (E2B/E4B) and K=V (12B/26B), so the estimate is a slight overestimate, which is the safe direction.
+- QAT Gemma checkpoints were trained for Q4_0, so the GGUF entries use Google's own Q4_0 files.
+- File reuse order: ./models, then the HF cache (`try_to_load_from_cache`, resolved to blobs/), then LM Studio's folder.
+  Matches are by exact repo + filename + size. An HF cache dir can exist with no snapshot (empty); that's a miss.
+- **Don't run anything else (not even a smoke test) while a benchmark is running.** It skews the numbers.
+  This happened once on 2026-10-09 and the affected combination had to be rerun.
+- Every run's generated text goes to `results/outputs/<run>/`. Check it when tokens_out hits the
+  --max-tokens cap (looping, or thinking despite reasoning off).
 
 ## Status
 - 2026-10-09: built and verified on macOS (M5 Max, 128 GB) with all 4 engines. The smoke model passed on all of them.
@@ -56,4 +66,4 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
 - **Not yet run on Windows or Linux.** Expect to fix: GPU detection (`hardware.py`: nvidia-smi,
   /sys/class/drm for AMD, Windows registry qwMemorySize), llama-server discovery, and LM Studio paths on Windows
   (`%USERPROFILE%\.lmstudio`). If detection is wrong, the user can pass `--vram-gb` / `--ram-gb`; fix the code too.
-- Next: Gemma 4 entries (example commented out in models.toml; fill `arch` from Google's config.json).
+- 2026-10-09: added Gemma 4 E2B / E4B / 12B QAT / 26B A4B QAT (not benchmarked yet).

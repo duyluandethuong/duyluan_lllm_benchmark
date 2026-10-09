@@ -3,8 +3,8 @@
 #   gguf -> llama.cpp (llama-server), every OS
 #   mlx  -> mlx-lm, macOS on Apple Silicon only
 #
-# Files are downloaded to ./models/<repo>/ (see README). Copy them there by hand
-# to skip the download on a new machine.
+# Files live in ./models/<repo>/. Before downloading, the script reuses the same repo
+# file from the Hugging Face cache or LM Studio's models folder, if present.
 #
 # Fields
 #   id          short name used on the CLI:  --model qwen3.8-27b
@@ -15,6 +15,9 @@
 #                attn_layers = number of layers with full attention (for hybrid models
 #                              count only "full_attention" in layer_types)
 #                kv_heads    = num_key_value_heads,  head_dim = head_dim
+#                Sliding-window models (Gemma): attn_layers/kv_heads/head_dim describe the
+#                global layers (num_global_key_value_heads, global_head_dim), plus
+#                sliding_layers, sliding_window, sliding_kv_heads, sliding_head_dim.
 #                Omit the table if unknown; a 15%-of-weights heuristic is used instead.
 #   [model.gguf] repo + files (list; give every shard of a split model, first shard first)
 #   [model.mlx]  repo (the whole repo snapshot is the model)
@@ -43,9 +46,32 @@ arch = { attn_layers = 6, kv_heads = 2, head_dim = 256 }
 gguf = { repo = "unsloth/Qwen3.5-0.8B-GGUF", files = ["Qwen3.5-0.8B-Q4_K_M.gguf"], quant = "Q4_K_M" }
 mlx = { repo = "mlx-community/Qwen3.5-0.8B-4bit", quant = "4bit" }
 
-# Example: adding Gemma 4 later (uncomment, fill in arch from google's config.json)
-# [[model]]
-# id = "gemma4-26b-a4b"
-# name = "Gemma 4 26B A4B"
-# gguf = { repo = "unsloth/gemma-4-26B-A4B-it-GGUF", files = ["gemma-4-26B-A4B-it-UD-Q4_K_M.gguf"], quant = "Q4_K_M" }
-# mlx = { repo = "mlx-community/gemma-4-26B-A4B-it-4bit", quant = "4bit" }
+# Gemma 4: E2B/E4B are regular Q4_K_M; 12B and 26B A4B are Google's QAT checkpoints
+# (trained for Q4_0, so the GGUF is Google's own Q4_0 file).
+[[model]]
+id = "gemma4-e2b"
+name = "Gemma 4 E2B"
+arch = { attn_layers = 7, kv_heads = 1, head_dim = 512, sliding_layers = 28, sliding_window = 512, sliding_kv_heads = 1, sliding_head_dim = 256 }
+gguf = { repo = "unsloth/gemma-4-E2B-it-GGUF", files = ["gemma-4-E2B-it-Q4_K_M.gguf"], quant = "Q4_K_M" }
+mlx = { repo = "mlx-community/gemma-4-e2b-it-4bit", quant = "4bit" }
+
+[[model]]
+id = "gemma4-e4b"
+name = "Gemma 4 E4B"
+arch = { attn_layers = 7, kv_heads = 2, head_dim = 512, sliding_layers = 35, sliding_window = 512, sliding_kv_heads = 2, sliding_head_dim = 256 }
+gguf = { repo = "unsloth/gemma-4-E4B-it-GGUF", files = ["gemma-4-E4B-it-Q4_K_M.gguf"], quant = "Q4_K_M" }
+mlx = { repo = "mlx-community/gemma-4-e4b-it-4bit", quant = "4bit" }
+
+[[model]]
+id = "gemma4-12b-qat"
+name = "Gemma 4 12B QAT"
+arch = { attn_layers = 8, kv_heads = 1, head_dim = 512, sliding_layers = 40, sliding_window = 1024, sliding_kv_heads = 8, sliding_head_dim = 256 }
+gguf = { repo = "google/gemma-4-12B-it-qat-q4_0-gguf", files = ["gemma-4-12b-it-qat-q4_0.gguf"], quant = "Q4_0 QAT" }
+mlx = { repo = "mlx-community/gemma-4-12B-it-qat-4bit", quant = "4bit QAT" }
+
+[[model]]
+id = "gemma4-26b-a4b-qat"
+name = "Gemma 4 26B A4B QAT"
+arch = { attn_layers = 5, kv_heads = 2, head_dim = 512, sliding_layers = 25, sliding_window = 1024, sliding_kv_heads = 8, sliding_head_dim = 256 }
+gguf = { repo = "google/gemma-4-26B-A4B-it-qat-q4_0-gguf", files = ["gemma-4-26B_q4_0-it.gguf"], quant = "Q4_0 QAT" }
+mlx = { repo = "mlx-community/gemma-4-26B-A4B-it-qat-4bit", quant = "4bit QAT" }

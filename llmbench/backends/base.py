@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
@@ -35,6 +35,7 @@ class RunMetrics:
     prefill_tps: float | None  # engine-reported prompt processing speed
     decode_tps: float  # engine-reported generation speed (excludes prefill)
     total_s: float  # client-side wall time of the request
+    text: str = field(default="", repr=False)  # generated output (reasoning + answer), saved for review
 
 
 class Backend(ABC):

@@ -163,12 +163,14 @@ class LmStudio(Backend):
 
     def _run(self, body: dict) -> RunMetrics:
         t0 = time.perf_counter()
-        ttft, stats, last = None, None, {}
+        ttft, stats, last, parts = None, None, {}, []
         for t, event, d in post_sse(f"{self.url}/api/v1/chat", body):
             event = event or d.get("type")
             last = d
-            if ttft is None and event in ("message.delta", "reasoning.delta"):
-                ttft = t - t0
+            if event in ("message.delta", "reasoning.delta"):
+                parts.append(d.get("content", ""))
+                if ttft is None:
+                    ttft = t - t0
             elif event == "chat.end":
                 stats = d["result"]["stats"]
         total = time.perf_counter() - t0
@@ -180,7 +182,7 @@ class LmStudio(Backend):
             tokens_in=tin, tokens_out=stats.get("total_output_tokens", 0),
             ttft_s=ttft if ttft is not None else total,
             prefill_tps=tin / server_ttft if server_ttft else None,  # LM Studio reports no prefill rate
-            decode_tps=stats.get("tokens_per_second", 0.0), total_s=total,
+            decode_tps=stats.get("tokens_per_second", 0.0), total_s=total, text="".join(parts),
         )
 
     def unload(self) -> None:

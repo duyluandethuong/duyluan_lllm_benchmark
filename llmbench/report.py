@@ -103,9 +103,18 @@ def write(results: list[Result], hw: Hardware, s: Settings, engines: dict[str, s
 - **Decode tok/s**: generation speed reported by the engine, excluding prefill.
 - **Est. mem**: weights + KV cache at the configured context + 1.5 GB overhead; used for the "{TOO_LARGE}" check.
 """
+    out_dir = RESULTS_DIR / "outputs" / stem
+    for r in results:
+        for i, m in enumerate(r.runs, 1):
+            out_dir.mkdir(parents=True, exist_ok=True)
+            name = re.sub(r"[^A-Za-z0-9.]+", "-", f"{r.model}__{r.engine}__run{i}").strip("-")
+            (out_dir / f"{name}.txt").write_text(m.text, encoding="utf-8")
+    md += f"\nModel outputs (for answer-quality review): `results/outputs/{stem}/`\n"
     (RESULTS_DIR / f"{stem}.md").write_text(md, encoding="utf-8")
     (RESULTS_DIR / f"{stem}.json").write_text(json.dumps({
         "host": host, "time": now.isoformat(timespec="seconds"), "hardware": asdict(hw),
-        "settings": asdict(s), "engines": engines, "results": [asdict(r) for r in results],
+        "settings": asdict(s), "engines": engines,
+        "results": [{**asdict(r), "runs": [{k: v for k, v in asdict(m).items() if k != "text"} for m in r.runs]}
+                    for r in results],
     }, indent=2), encoding="utf-8")
     return str(RESULTS_DIR / f"{stem}.md")

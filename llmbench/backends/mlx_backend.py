@@ -64,7 +64,8 @@ class Mlx(Backend):
         self.proc.stdin.write(json.dumps(req) + "\n")
         self.proc.stdin.flush()
         m = self._recv()
-        return RunMetrics(m["tokens_in"], m["tokens_out"], m["ttft_s"], m["prefill_tps"], m["decode_tps"], m["total_s"])
+        return RunMetrics(m["tokens_in"], m["tokens_out"], m["ttft_s"], m["prefill_tps"], m["decode_tps"],
+                          m["total_s"], m["text"])
 
     def unload(self) -> None:
         if self.proc:

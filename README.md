@@ -14,6 +14,10 @@ A-roll video. Every model and engine gets byte-identical input.
 Each run reports **tokens in, tokens out, TTFT, prefill tok/s, decode tok/s** (plus load time
 and estimated memory). The results are printed as a table and saved to `results/<date>_<host>.md` (and `.json`).
 If the machine cannot hold a model, its row says **Too large to run**.
+The generated text for every run is saved in `results/outputs/<run>/`, so you can compare answer quality as well as speed.
+
+Models so far: Qwen3.8 27B, Qwen3.6 35B A3B, Gemma 4 E2B, Gemma 4 E4B, Gemma 4 12B QAT, Gemma 4 26B A4B QAT
+(4-bit everywhere; QAT models use Google's Q4_0 GGUF).
 
 ## Setup
 
@@ -55,8 +59,15 @@ uv run bench.py --all -e llamacpp,lmstudio  # every model, chosen engines only
 ## Model files
 
 Files go to `./models/<publisher>/<repo>/`, for example `models/unsloth/Qwen3.8-27B-GGUF/Qwen3.8-27B-UD-Q4_K_M.gguf`.
-**To skip downloading on a new machine, copy the `models/` folder over.** Any file that is
-already there at the right size is reused.
+Before downloading anything, the script looks for the same repo file, at the right size, in this order:
+
+1. `./models`. **To skip downloading on a new machine, copy the `models/` folder over.**
+2. The Hugging Face cache (`~/.cache/huggingface/hub`, or `$HF_HUB_CACHE`).
+3. LM Studio's models folder (`<lmstudio>/models/<publisher>/<repo>/`).
+
+A file found in 2 or 3 is hard-linked into `./models` (no extra disk space), or symlinked or copied
+if it's on another drive. The match has to be the same repo. A similar quant from a different publisher (e.g.
+`lmstudio-community` instead of `unsloth`) is a different file and gets downloaded.
 
 LM Studio uses the same files. They are hard-linked into LM Studio's models folder (no extra disk
 space), or copied if that folder is on a different drive. LM Studio does not index symlinks.

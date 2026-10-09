@@ -89,11 +89,14 @@ class LlamaCpp(Backend):
         }
         t0 = time.perf_counter()
         ttft = None
-        timings, usage = {}, {}
+        timings, usage, parts = {}, {}, []
         for t, _, d in post_sse(f"{self.url}/v1/chat/completions", body):
             delta = (d.get("choices") or [{}])[0].get("delta", {})
-            if ttft is None and (delta.get("content") or delta.get("reasoning_content")):
-                ttft = t - t0
+            piece = (delta.get("reasoning_content") or "") + (delta.get("content") or "")
+            if piece:
+                parts.append(piece)
+                if ttft is None:
+                    ttft = t - t0
             timings = d.get("timings", timings)
             usage = d.get("usage") or usage
         total = time.perf_counter() - t0
@@ -104,6 +107,7 @@ class LlamaCpp(Backend):
             prefill_tps=timings.get("prompt_per_second"),
             decode_tps=timings.get("predicted_per_second", 0.0),
             total_s=total,
+            text="".join(parts),
         )
 
     def unload(self) -> None:

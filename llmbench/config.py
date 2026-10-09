@@ -13,9 +13,14 @@ REGISTRY = ROOT / "models.toml"
 
 @dataclass(frozen=True)
 class Arch:
-    attn_layers: int
+    attn_layers: int  # layers whose KV cache grows with the full context
     kv_heads: int
     head_dim: int
+    # Sliding-window layers (Gemma): their cache stops growing at `sliding_window` tokens.
+    sliding_layers: int = 0
+    sliding_window: int = 0
+    sliding_kv_heads: int = 0
+    sliding_head_dim: int = 0
 
 
 @dataclass(frozen=True)
