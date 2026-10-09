@@ -1,0 +1,922 @@
+You are an assistant video editor. Your job is to place B-roll clips over an A-roll (talking-head) edit.
+
+# Inputs
+1. The A-roll transcript: timestamped segments with IDs like S001.
+2. The B-roll catalogue: 90 clips with technical and descriptive metadata, IDs like B001.
+
+# Rules
+- Choose exactly 30 B-roll placements that best illustrate what the host is saying.
+- Each placement covers one transcript segment (or a run of adjacent segments) and uses ONE clip.
+- Only use the clip's usable_range_s; never use a range with a quality_note other than "clean" unless no clean clip fits.
+- Do not reuse the same clip twice. Prefer matching location and subject over matching mood.
+- Placement length must fit within the clip's usable range and the segment's duration.
+- Keep the host on camera for the first and last segment of every chapter.
+
+# Output
+Return a JSON array only, no prose. Each element:
+{"segments": "S012-S013", "clip_id": "B045", "clip_in_s": 2.0, "clip_out_s": 7.5, "reason": "<= 15 words"}
+
+# A-roll transcript
+
+## Chapter: Intro
+
+[S001] 00:00:00 --> 00:00:07 | You know, welcome back to the channel, today we are going somewhere I have wanted to film for years.
+[S002] 00:00:08 --> 00:00:15 | Right, this whole video is about one drink, and honestly it is a drink that runs an entire country.
+[S003] 00:00:16 --> 00:00:24 | We are going from the red soil of the Central Highlands all the way to a tiny plastic stool in Saigon.
+[S004] 00:00:25 --> 00:00:33 | And honestly, if you have ever had a phin drip coffee, you already know why I am this excited.
+[S005] 00:00:33 --> 00:00:40 | Grab a cup of whatever you are drinking, because this is going to be a long one.
+[S006] 00:00:40 --> 00:00:46 | Before we start, a quick thank you to everyone who suggested this topic in the comments.
+[S007] 00:00:47 --> 00:00:54 | I mean, like I said, welcome back to the channel, today we are going somewhere I have wanted to film for years.
+[S008] 00:00:55 --> 00:01:03 | Look, to be clear, this whole video is about one drink, and honestly it is a drink that runs an entire country.
+[S009] 00:01:03 --> 00:01:14 | Okay so like I said, we are going from the red soil of the Central Highlands all the way to a tiny plastic stool in Saigon.
+[S010] 00:01:14 --> 00:01:21 | Okay so to be clear, if you have ever had a phin drip coffee, you already know why I am this excited.
+[S011] 00:01:22 --> 00:01:29 | Like I said, grab a cup of whatever you are drinking, because this is going to be a long one.
+
+## Chapter: History
+
+[S012] 00:01:29 --> 00:01:34 | Coffee arrived in Vietnam in the eighteen fifties, brought over by French missionaries.
+[S013] 00:01:35 --> 00:01:40 | Okay so at first it was grown on small plantations around the northern provinces.
+[S014] 00:01:41 --> 00:01:46 | And honestly, the real expansion happened much later, after the economic reforms of nineteen eighty six.
+[S015] 00:01:47 --> 00:01:52 | You know, within about fifteen years Vietnam became the second largest coffee exporter in the world.
+[S016] 00:01:53 --> 00:02:00 | Look, most of that growth was robusta, a hardier bean that handles the heat and the rain.
+[S017] 00:02:01 --> 00:02:07 | Okay so old photographs from Buon Ma Thuot show how different the landscape looked back then.
+[S018] 00:02:08 --> 00:02:14 | I mean, a lot of families I spoke with remember planting their first trees by hand as kids.
+[S019] 00:02:15 --> 00:02:20 | You know, again, coffee arrived in Vietnam in the eighteen fifties, brought over by French missionaries.
+[S020] 00:02:21 --> 00:02:26 | And this matters, at first it was grown on small plantations around the northern provinces.
+[S021] 00:02:28 --> 00:02:33 | Again, the real expansion happened much later, after the economic reforms of nineteen eighty six.
+[S022] 00:02:34 --> 00:02:39 | And honestly, again, within about fifteen years Vietnam became the second largest coffee exporter in the world.
+[S023] 00:02:40 --> 00:02:49 | Look, to be clear, most of that growth was robusta, a hardier bean that handles the heat and the rain.
+
+## Chapter: Farm
+
+[S024] 00:02:50 --> 00:02:55 | This is the farm of Mr. Thanh, who has been growing coffee here for thirty two years.
+[S025] 00:02:56 --> 00:03:02 | The soil here is basalt, which is why it has this deep red color everywhere you look.
+[S026] 00:03:03 --> 00:03:09 | Harvest season runs from October to January, and everyone in the family helps out.
+[S027] 00:03:09 --> 00:03:13 | They still pick most cherries by hand, stripping whole branches at once.
+[S028] 00:03:14 --> 00:03:19 | Look, mr. Thanh told me that the rains this year came three weeks late.
+[S029] 00:03:19 --> 00:03:25 | Right, you can see the difference between ripe red cherries and the green ones that need more time.
+[S030] 00:03:25 --> 00:03:31 | Irrigation is the biggest cost for small farms like this one during the dry season.
+[S031] 00:03:32 --> 00:03:37 | You know, his daughter is now experimenting with growing arabica on the higher slopes.
+[S032] 00:03:37 --> 00:03:43 | Look, look at the shade trees, they are pepper vines climbing up the support posts.
+[S033] 00:03:43 --> 00:03:47 | Intercropping pepper and durian helps the family survive when coffee prices fall.
+[S034] 00:03:48 --> 00:03:55 | Like I said, this is the farm of Mr. Thanh, who has been growing coffee here for thirty two years.
+[S035] 00:03:55 --> 00:04:02 | To be clear, the soil here is basalt, which is why it has this deep red color everywhere you look.
+[S036] 00:04:02 --> 00:04:10 | I mean, and this matters, harvest season runs from October to January, and everyone in the family helps out.
+[S037] 00:04:10 --> 00:04:15 | I mean, again, they still pick most cherries by hand, stripping whole branches at once.
+[S038] 00:04:15 --> 00:04:22 | I mean, again, mr. Thanh told me that the rains this year came three weeks late.
+[S039] 00:04:23 --> 00:04:30 | Like I said, you can see the difference between ripe red cherries and the green ones that need more time.
+[S040] 00:04:30 --> 00:04:37 | You know, to be clear, irrigation is the biggest cost for small farms like this one during the dry season.
+[S041] 00:04:38 --> 00:04:44 | I mean, again, his daughter is now experimenting with growing arabica on the higher slopes.
+
+## Chapter: Processing
+
+[S042] 00:04:45 --> 00:04:51 | You know, after picking, the cherries are spread out to dry on these huge concrete yards.
+[S043] 00:04:52 --> 00:04:57 | You know, they rake them several times a day so everything dries evenly in the sun.
+[S044] 00:04:58 --> 00:05:03 | So drying takes between two and four weeks depending on the weather.
+[S045] 00:05:03 --> 00:05:09 | Some newer farms are moving to honey process and washed process for specialty buyers.
+[S046] 00:05:09 --> 00:05:15 | Here the dried cherries go through a huller that strips the outer layers off.
+[S047] 00:05:15 --> 00:05:19 | What comes out is green coffee, and this is what actually gets exported.
+[S048] 00:05:20 --> 00:05:26 | I mean, sorting is still partly done by hand, looking for broken or black beans.
+[S049] 00:05:27 --> 00:05:31 | Okay so this machine sorts the beans by size using vibrating screens.
+[S050] 00:05:32 --> 00:05:38 | You know, again, after picking, the cherries are spread out to dry on these huge concrete yards.
+[S051] 00:05:39 --> 00:05:44 | Again, they rake them several times a day so everything dries evenly in the sun.
+[S052] 00:05:44 --> 00:05:50 | And honestly, again, drying takes between two and four weeks depending on the weather.
+[S053] 00:05:50 --> 00:05:57 | Okay so like I said, some newer farms are moving to honey process and washed process for specialty buyers.
+[S054] 00:05:57 --> 00:06:03 | Again, here the dried cherries go through a huller that strips the outer layers off.
+[S055] 00:06:04 --> 00:06:10 | And this matters, what comes out is green coffee, and this is what actually gets exported.
+
+## Chapter: Roasting
+
+[S056] 00:06:11 --> 00:06:16 | Look, vietnamese roasting traditionally goes very dark, much darker than most western roasts.
+[S057] 00:06:16 --> 00:06:21 | Look, some roasters add butter, sugar or even a little fish sauce during the roast.
+[S058] 00:06:22 --> 00:06:27 | And honestly, that is where the chocolatey, almost caramel smell of Vietnamese coffee comes from.
+[S059] 00:06:28 --> 00:06:35 | You know, this roastery in Da Lat uses a drum roaster that is older than I am.
+[S060] 00:06:36 --> 00:06:42 | You know, listen to that, that crackling is the first crack, the beans are expanding.
+[S061] 00:06:42 --> 00:06:48 | The roaster judges the color by eye and by smell, no software involved.
+[S062] 00:06:48 --> 00:06:54 | Cooling happens in this big tray with a rotating arm so the beans stop cooking.
+[S063] 00:06:55 --> 00:07:00 | Freshly roasted beans need to rest for a few days before they taste their best.
+[S064] 00:07:01 --> 00:07:07 | You know, like I said, vietnamese roasting traditionally goes very dark, much darker than most western roasts.
+[S065] 00:07:07 --> 00:07:13 | And honestly, like I said, some roasters add butter, sugar or even a little fish sauce during the roast.
+[S066] 00:07:14 --> 00:07:21 | So and this matters, that is where the chocolatey, almost caramel smell of Vietnamese coffee comes from.
+[S067] 00:07:21 --> 00:07:28 | Look, like I said, this roastery in Da Lat uses a drum roaster that is older than I am.
+[S068] 00:07:29 --> 00:07:34 | Look, to be clear, listen to that, that crackling is the first crack, the beans are expanding.
+[S069] 00:07:35 --> 00:07:41 | I mean, and this matters, the roaster judges the color by eye and by smell, no software involved.
+
+## Chapter: Phin
+
+[S070] 00:07:42 --> 00:07:46 | This little metal thing is a phin, the traditional Vietnamese drip filter.
+[S071] 00:07:47 --> 00:07:53 | Right, you put about two tablespoons of ground coffee in, then the press on top.
+[S072] 00:07:54 --> 00:07:58 | A splash of hot water first to let the grounds bloom for thirty seconds.
+[S073] 00:07:59 --> 00:08:06 | Okay so then you fill it up and wait, and this is the part that teaches you patience.
+[S074] 00:08:07 --> 00:08:12 | A good phin should drip slowly, around four to five minutes for a full cup.
+[S075] 00:08:12 --> 00:08:17 | And honestly, underneath is sweetened condensed milk, which became popular because fresh milk was scarce.
+[S076] 00:08:17 --> 00:08:24 | So stir it all together and you get ca phe sua, the classic milk coffee.
+[S077] 00:08:24 --> 00:08:30 | Right, pour it over a glass full of ice and now it is ca phe sua da.
+[S078] 00:08:31 --> 00:08:36 | Again, this little metal thing is a phin, the traditional Vietnamese drip filter.
+[S079] 00:08:36 --> 00:08:42 | You know, and this matters, you put about two tablespoons of ground coffee in, then the press on top.
+[S080] 00:08:43 --> 00:08:51 | Okay so to be clear, a splash of hot water first to let the grounds bloom for thirty seconds.
+[S081] 00:08:51 --> 00:08:59 | Right, to be clear, then you fill it up and wait, and this is the part that teaches you patience.
+[S082] 00:09:00 --> 00:09:07 | I mean, and this matters, a good phin should drip slowly, around four to five minutes for a full cup.
+[S083] 00:09:08 --> 00:09:15 | You know, like I said, underneath is sweetened condensed milk, which became popular because fresh milk was scarce.
+
+## Chapter: Street culture
+
+[S084] 00:09:16 --> 00:09:23 | You know, this is where most people in Saigon actually drink their coffee, right on the sidewalk.
+[S085] 00:09:23 --> 00:09:29 | I mean, the plastic stools are tiny, and nobody seems to mind at all.
+[S086] 00:09:29 --> 00:09:33 | You know, office workers stop here every morning before riding to work.
+[S087] 00:09:34 --> 00:09:38 | So older men play Chinese chess and argue about football for hours.
+[S088] 00:09:39 --> 00:09:44 | I mean, the owner, Ms. Lan, has run this corner stall for nineteen years.
+[S089] 00:09:45 --> 00:09:51 | A glass costs about fifteen thousand dong, which is less than one US dollar.
+[S090] 00:09:52 --> 00:09:56 | I mean, the traffic noise is basically part of the experience at this point.
+[S091] 00:09:57 --> 00:10:02 | So look at how many motorbikes stop just to pick up a coffee to go.
+[S092] 00:10:03 --> 00:10:09 | Coffee here is social, it is less about the drink and more about sitting together.
+[S093] 00:10:10 --> 00:10:17 | Right, to be clear, this is where most people in Saigon actually drink their coffee, right on the sidewalk.
+[S094] 00:10:18 --> 00:10:24 | I mean, and this matters, the plastic stools are tiny, and nobody seems to mind at all.
+[S095] 00:10:26 --> 00:10:31 | And honestly, like I said, office workers stop here every morning before riding to work.
+[S096] 00:10:32 --> 00:10:38 | And honestly, like I said, older men play Chinese chess and argue about football for hours.
+[S097] 00:10:38 --> 00:10:43 | I mean, again, the owner, Ms. Lan, has run this corner stall for nineteen years.
+[S098] 00:10:44 --> 00:10:51 | Look, like I said, a glass costs about fifteen thousand dong, which is less than one US dollar.
+[S099] 00:10:52 --> 00:10:57 | So like I said, the traffic noise is basically part of the experience at this point.
+
+## Chapter: Egg coffee
+
+[S100] 00:10:58 --> 00:11:03 | So now we are in Hanoi, and we have to talk about egg coffee.
+[S101] 00:11:04 --> 00:11:08 | Okay so it was invented in the nineteen forties when milk was hard to find.
+[S102] 00:11:09 --> 00:11:15 | And honestly, egg yolk is whisked with sugar and condensed milk until it is thick and fluffy.
+[S103] 00:11:15 --> 00:11:21 | Right, then it is spooned on top of a strong black coffee, almost like a dessert.
+[S104] 00:11:21 --> 00:11:25 | The cup sits in a bowl of hot water to keep it warm.
+[S105] 00:11:26 --> 00:11:31 | It tastes a bit like tiramisu, and I did not expect to like it this much.
+[S106] 00:11:33 --> 00:11:37 | Right, this cafe is up a narrow staircase with a view over Hoan Kiem lake.
+[S107] 00:11:39 --> 00:11:46 | So and this matters, now we are in Hanoi, and we have to talk about egg coffee.
+[S108] 00:11:47 --> 00:11:52 | Okay so and this matters, it was invented in the nineteen forties when milk was hard to find.
+[S109] 00:11:54 --> 00:12:01 | Right, to be clear, egg yolk is whisked with sugar and condensed milk until it is thick and fluffy.
+[S110] 00:12:02 --> 00:12:08 | Look, like I said, then it is spooned on top of a strong black coffee, almost like a dessert.
+[S111] 00:12:09 --> 00:12:15 | To be clear, the cup sits in a bowl of hot water to keep it warm.
+
+## Chapter: Modern scene
+
+[S112] 00:12:16 --> 00:12:21 | Right, in the last ten years a whole specialty coffee scene has exploded here.
+[S113] 00:12:22 --> 00:12:26 | Look, young baristas are serving pour overs from single farm Vietnamese arabica.
+[S114] 00:12:27 --> 00:12:32 | I mean, coconut coffee and salt coffee have become huge on social media.
+[S115] 00:12:33 --> 00:12:38 | Salt coffee comes from Hue, where they add a salty cream on top.
+[S116] 00:12:38 --> 00:12:44 | I mean, chains are opening everywhere, but the street stalls are not going anywhere.
+[S117] 00:12:45 --> 00:12:51 | I mean, some farms now sell directly to roasters in Seoul, Tokyo and Melbourne.
+[S118] 00:12:51 --> 00:12:57 | Okay so latte art competitions are now a thing, which would have been unthinkable twenty years ago.
+[S119] 00:12:58 --> 00:13:02 | This cafe roasts in house and tells you the exact farm each bean came from.
+[S120] 00:13:03 --> 00:13:08 | Again, in the last ten years a whole specialty coffee scene has exploded here.
+[S121] 00:13:09 --> 00:13:14 | And honestly, again, young baristas are serving pour overs from single farm Vietnamese arabica.
+[S122] 00:13:14 --> 00:13:20 | Okay so to be clear, coconut coffee and salt coffee have become huge on social media.
+[S123] 00:13:20 --> 00:13:26 | I mean, to be clear, salt coffee comes from Hue, where they add a salty cream on top.
+[S124] 00:13:27 --> 00:13:33 | I mean, again, chains are opening everywhere, but the street stalls are not going anywhere.
+[S125] 00:13:34 --> 00:13:38 | Look, again, some farms now sell directly to roasters in Seoul, Tokyo and Melbourne.
+
+## Chapter: Economics
+
+[S126] 00:13:39 --> 00:13:43 | Coffee prices hit record highs recently, mostly because of droughts in Brazil.
+[S127] 00:13:43 --> 00:13:47 | Right, for farmers here that meant the best income in decades.
+[S128] 00:13:48 --> 00:13:53 | Okay so but climate change is a real worry, the dry seasons are getting longer.
+[S129] 00:13:54 --> 00:13:59 | Right, some farmers are cutting down coffee and planting durian instead because it pays more.
+[S130] 00:14:00 --> 00:14:05 | So exporters told me that buyers now ask about traceability and deforestation rules.
+[S131] 00:14:05 --> 00:14:10 | The new European regulations require proof that coffee did not come from cleared forest.
+[S132] 00:14:11 --> 00:14:16 | Right, cooperatives are helping small farms share equipment and get better prices.
+[S133] 00:14:16 --> 00:14:22 | Right, again, coffee prices hit record highs recently, mostly because of droughts in Brazil.
+[S134] 00:14:22 --> 00:14:27 | Like I said, for farmers here that meant the best income in decades.
+[S135] 00:14:28 --> 00:14:33 | Again, but climate change is a real worry, the dry seasons are getting longer.
+[S136] 00:14:33 --> 00:14:40 | Look, again, some farmers are cutting down coffee and planting durian instead because it pays more.
+[S137] 00:14:41 --> 00:14:47 | You know, and this matters, exporters told me that buyers now ask about traceability and deforestation rules.
+
+## Chapter: Outro
+
+[S138] 00:14:48 --> 00:14:55 | So that is the journey, from the red soil all the way to this glass of iced coffee.
+[S139] 00:14:55 --> 00:15:01 | You know, I came here thinking I knew Vietnamese coffee, and I really did not.
+[S140] 00:15:02 --> 00:15:07 | A huge thank you to Mr. Thanh, Ms. Lan, and everyone who let us film.
+[S141] 00:15:07 --> 00:15:12 | If you enjoyed this, the next episode is about tea in the northern mountains.
+[S142] 00:15:13 --> 00:15:17 | Let me know in the comments what your favourite Vietnamese coffee is.
+[S143] 00:15:19 --> 00:15:22 | See you next time, and as always, drink it slowly.
+[S144] 00:15:23 --> 00:15:31 | And this matters, so that is the journey, from the red soil all the way to this glass of iced coffee.
+[S145] 00:15:31 --> 00:15:37 | I mean, and this matters, I came here thinking I knew Vietnamese coffee, and I really did not.
+[S146] 00:15:38 --> 00:15:46 | You know, to be clear, a huge thank you to Mr. Thanh, Ms. Lan, and everyone who let us film.
+[S147] 00:15:46 --> 00:15:53 | Like I said, if you enjoyed this, the next episode is about tea in the northern mountains.
+[S148] 00:15:53 --> 00:15:59 | So again, let me know in the comments what your favourite Vietnamese coffee is.
+
+# B-roll catalogue
+- clip_id: B001
+  file: INTRO_timelapse_001.mov
+  duration_s: 5.6 | fps: 25 | resolution: 4096x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: timelapse | location: Buon Ma Thuot, Dak Lak | shoot_day: 1
+  description: Saigon skyline day to night, energetic mood, slider
+  usable_range_s: 1.2-5.1 | quality_note: lens flare
+  tags: Saigon, golden hour, intro, skyline, timelapse, to
+- clip_id: B002
+  file: HISTORY_closeup_002.mov
+  duration_s: 34.4 | fps: 30 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: close-up | location: Buon Ma Thuot Coffee Museum | shoot_day: 16
+  description: robusta tree trunk with moss, golden hour mood, gimbal
+  usable_range_s: 1.9-26.6 | quality_note: lens flare
+  tags: close-up, history, moss, trunk, warm, with
+- clip_id: B003
+  file: FARM_medium_003.mov
+  duration_s: 44.2 | fps: 30 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: medium | location: Cu M'gar, Dak Lak | shoot_day: 13
+  description: daughter inspecting arabica seedlings, busy mood, handheld
+  usable_range_s: 6.5-38.2 | quality_note: clean
+  tags: calm, daughter, farm, inspecting, medium, seedlings
+- clip_id: B004
+  file: PROCESSING_closeup_004.mov
+  duration_s: 11.9 | fps: 25 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: Krong Pac, Dak Lak | shoot_day: 11
+  description: hands sorting green beans, warm mood, drone
+  usable_range_s: 2.3-8.9 | quality_note: clean
+  tags: close-up, golden hour, green, hands, processing, sorting
+- clip_id: B005
+  file: ROASTING_closeup_005.mov
+  duration_s: 30.3 | fps: 30 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: close-up | location: Da Lat, Lam Dong | shoot_day: 1
+  description: butter melting over hot beans, busy mood, slider
+  usable_range_s: 7.2-20.6 | quality_note: exposure shift mid-clip
+  tags: beans, butter, close-up, melting, roasting, warm
+- clip_id: B006
+  file: PHIN_macro_006.mov
+  duration_s: 42.8 | fps: 25 | resolution: 1920x1080
+  camera: Canon R5 C | lens: built-in
+  shot_type: macro | location: Studio, District 3, HCMC | shoot_day: 12
+  description: coffee dripping from phin filter, warm mood, tripod
+  usable_range_s: 1.8-36.1 | quality_note: focus breathing at start
+  tags: calm, coffee, dripping, from, macro, phin
+- clip_id: B007
+  file: STREET_pov_007.mov
+  duration_s: 19.7 | fps: 30 | resolution: 3840x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: pov | location: District 1, Ho Chi Minh City | shoot_day: 3
+  description: motorbike pickup of coffee to go, warm mood, tripod
+  usable_range_s: 2.9-18.4 | quality_note: focus breathing at start
+  tags: go, motorbike, nostalgic, of, pov, street
+- clip_id: B008
+  file: EGG_wide_008.mov
+  duration_s: 18.6 | fps: 30 | resolution: 1920x1080
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 1
+  description: Hoan Kiem lake from balcony, overcast mood, gimbal
+  usable_range_s: 4.0-17.3 | quality_note: slight shake
+  tags: balcony, calm, egg, from, lake, wide
+- clip_id: B009
+  file: MODERN_closeup_009.mov
+  duration_s: 24.9 | fps: 30 | resolution: 1920x1080
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: close-up | location: District 3, Ho Chi Minh City | shoot_day: 18
+  description: latte art being poured, energetic mood, slider
+  usable_range_s: 4.8-19.6 | quality_note: clean
+  tags: being, close-up, energetic, latte, modern, poured
+- clip_id: B010
+  file: ECONOMICS_medium_010.mov
+  duration_s: 28.6 | fps: 25 | resolution: 1920x1080
+  camera: Canon R5 C | lens: built-in
+  shot_type: medium | location: Dak Lak / HCMC | shoot_day: 1
+  description: cooperative meeting, energetic mood, tripod
+  usable_range_s: 3.5-20.9 | quality_note: clean
+  tags: cooperative, economics, medium, meeting, overcast
+- clip_id: B011
+  file: OUTRO_closeup_011.mov
+  duration_s: 3.4 | fps: 24 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: close-up | location: District 1, Ho Chi Minh City | shoot_day: 8
+  description: last sip of iced coffee, warm mood, handheld
+  usable_range_s: 0.6-3.0 | quality_note: clean
+  tags: close-up, coffee, iced, nostalgic, outro, sip
+- clip_id: B012
+  file: INTRO_wide_012.mov
+  duration_s: 32.1 | fps: 25 | resolution: 1920x1080
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: wide | location: Buon Ma Thuot, Dak Lak | shoot_day: 16
+  description: host walking into frame on a misty road, overcast mood, tripod
+  usable_range_s: 4.4-23.7 | quality_note: clean
+  tags: a, documentary, into, intro, road, wide
+- clip_id: B013
+  file: HISTORY_archival_013.mov
+  duration_s: 8.1 | fps: 24 | resolution: 1920x1080
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: archival | location: Buon Ma Thuot Coffee Museum | shoot_day: 4
+  description: 1990s export port footage, energetic mood, drone
+  usable_range_s: 1.5-7.9 | quality_note: lens flare
+  tags: 1990s, archival, busy, export, footage, history
+- clip_id: B014
+  file: FARM_medium_014.mov
+  duration_s: 38.0 | fps: 25 | resolution: 3840x2160
+  camera: Sony FX3 | lens: 24-70mm f/2.8
+  shot_type: medium | location: Cu M'gar, Dak Lak | shoot_day: 12
+  description: family loading sacks onto motorbike, warm mood, drone
+  usable_range_s: 1.7-23.0 | quality_note: clean
+  tags: documentary, family, farm, loading, medium, sacks
+- clip_id: B015
+  file: PROCESSING_medium_015.mov
+  duration_s: 29.8 | fps: 25 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: medium | location: Krong Pac, Dak Lak | shoot_day: 1
+  description: vibrating size sorter, energetic mood, slider
+  usable_range_s: 4.3-23.5 | quality_note: clean
+  tags: medium, overcast, processing, size, sorter, vibrating
+- clip_id: B016
+  file: ROASTING_closeup_016.mov
+  duration_s: 23.7 | fps: 30 | resolution: 3840x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: close-up | location: Da Lat, Lam Dong | shoot_day: 5
+  description: beans tumbling in drum roaster, documentary mood, slider
+  usable_range_s: 0.9-19.6 | quality_note: focus breathing at start
+  tags: beans, close-up, energetic, roaster, roasting, tumbling
+- clip_id: B017
+  file: PHIN_macro_017.mov
+  duration_s: 12.5 | fps: 30 | resolution: 4096x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: macro | location: Studio, District 3, HCMC | shoot_day: 15
+  description: grounds blooming with hot water, calm mood, gimbal
+  usable_range_s: 2.8-9.0 | quality_note: exposure shift mid-clip
+  tags: golden hour, grounds, macro, phin, water, with
+- clip_id: B018
+  file: STREET_medium_018.mov
+  duration_s: 30.7 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: medium | location: District 1, Ho Chi Minh City | shoot_day: 8
+  description: old men playing Chinese chess, overcast mood, tripod
+  usable_range_s: 1.3-19.3 | quality_note: clean
+  tags: Chinese, chess, medium, playing, street, warm
+- clip_id: B019
+  file: EGG_closeup_019.mov
+  duration_s: 32.7 | fps: 30 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: Hoan Kiem, Hanoi | shoot_day: 15
+  description: whisking yolk and sugar, documentary mood, gimbal
+  usable_range_s: 0.6-22.7 | quality_note: exposure shift mid-clip
+  tags: close-up, egg, energetic, sugar, whisking, yolk
+- clip_id: B020
+  file: MODERN_closeup_020.mov
+  duration_s: 37.7 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: District 3, Ho Chi Minh City | shoot_day: 2
+  description: latte art being poured, energetic mood, slider
+  usable_range_s: 1.6-27.3 | quality_note: clean
+  tags: art, close-up, energetic, latte, modern, poured
+- clip_id: B021
+  file: ECONOMICS_wide_021.mov
+  duration_s: 23.7 | fps: 24 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: wide | location: Dak Lak / HCMC | shoot_day: 14
+  description: durian orchard replacing coffee, energetic mood, drone
+  usable_range_s: 4.4-19.9 | quality_note: clean
+  tags: coffee, durian, economics, replacing, warm, wide
+- clip_id: B022
+  file: OUTRO_aerial_022.mov
+  duration_s: 24.8 | fps: 25 | resolution: 1920x1080
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: aerial | location: District 1, Ho Chi Minh City | shoot_day: 6
+  description: drone rising over highlands sunset, golden hour mood, tripod
+  usable_range_s: 6.2-19.2 | quality_note: clean
+  tags: aerial, drone, highlands, outro, overcast, rising
+- clip_id: B023
+  file: OUTRO_wide_023.mov
+  duration_s: 16.9 | fps: 30 | resolution: 4096x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: wide | location: District 1, Ho Chi Minh City | shoot_day: 10
+  description: host sitting on plastic stool at dusk, intimate mood, tripod
+  usable_range_s: 2.8-12.8 | quality_note: clean
+  tags: documentary, dusk, host, outro, plastic, wide
+- clip_id: B024
+  file: HISTORY_closeup_024.mov
+  duration_s: 37.6 | fps: 24 | resolution: 4096x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: close-up | location: Buon Ma Thuot Coffee Museum | shoot_day: 14
+  description: robusta tree trunk with moss, energetic mood, drone
+  usable_range_s: 0.5-30.4 | quality_note: clean
+  tags: close-up, history, moss, overcast, robusta, with
+- clip_id: B025
+  file: ROASTING_wide_025.mov
+  duration_s: 23.4 | fps: 24 | resolution: 3840x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: wide | location: Da Lat, Lam Dong | shoot_day: 6
+  description: Da Lat roastery interior with smoke, overcast mood, handheld
+  usable_range_s: 1.8-14.2 | quality_note: exposure shift mid-clip
+  tags: Da, Lat, golden hour, roasting, smoke, wide
+- clip_id: B026
+  file: FARM_medium_026.mov
+  duration_s: 15.3 | fps: 30 | resolution: 1920x1080
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: medium | location: Cu M'gar, Dak Lak | shoot_day: 14
+  description: daughter inspecting arabica seedlings, golden hour mood, gimbal
+  usable_range_s: 3.2-15.2 | quality_note: focus breathing at start
+  tags: arabica, daughter, farm, medium, nostalgic, seedlings
+- clip_id: B027
+  file: MODERN_insert_027.mov
+  duration_s: 39.3 | fps: 25 | resolution: 4096x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: insert | location: District 3, Ho Chi Minh City | shoot_day: 11
+  description: phone filming coffee for social media, busy mood, slider
+  usable_range_s: 9.2-31.6 | quality_note: focus breathing at start
+  tags: coffee, for, insert, media, modern, warm
+- clip_id: B028
+  file: EGG_wide_028.mov
+  duration_s: 26.2 | fps: 30 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 13
+  description: narrow staircase to Hanoi cafe, golden hour mood, handheld
+  usable_range_s: 3.0-19.1 | quality_note: clean
+  tags: Hanoi, egg, narrow, nostalgic, staircase, wide
+- clip_id: B029
+  file: EGG_wide_029.mov
+  duration_s: 44.5 | fps: 30 | resolution: 3840x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 16
+  description: Hoan Kiem lake from balcony, documentary mood, slider
+  usable_range_s: 10.7-28.9 | quality_note: clean
+  tags: Hoan, balcony, egg, from, intimate, wide
+- clip_id: B030
+  file: FARM_wide_030.mov
+  duration_s: 43.7 | fps: 24 | resolution: 4096x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: wide | location: Cu M'gar, Dak Lak | shoot_day: 9
+  description: irrigation sprinkler during dry season, overcast mood, drone
+  usable_range_s: 3.7-38.3 | quality_note: clean
+  tags: calm, dry, during, farm, sprinkler, wide
+- clip_id: B031
+  file: ECONOMICS_insert_031.mov
+  duration_s: 29.5 | fps: 25 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: insert | location: Dak Lak / HCMC | shoot_day: 3
+  description: commodity price chart on screen, energetic mood, handheld
+  usable_range_s: 3.2-18.9 | quality_note: clean
+  tags: calm, chart, economics, insert, on, price
+- clip_id: B032
+  file: PHIN_macro_032.mov
+  duration_s: 18.1 | fps: 25 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: macro | location: Studio, District 3, HCMC | shoot_day: 5
+  description: coffee dripping from phin filter, golden hour mood, drone
+  usable_range_s: 1.1-13.8 | quality_note: exposure shift mid-clip
+  tags: busy, coffee, dripping, filter, macro, phin
+- clip_id: B033
+  file: PROCESSING_closeup_033.mov
+  duration_s: 9.0 | fps: 25 | resolution: 1920x1080
+  camera: Canon R5 C | lens: built-in
+  shot_type: close-up | location: Krong Pac, Dak Lak | shoot_day: 15
+  description: hands sorting green beans, calm mood, slider
+  usable_range_s: 0.6-5.4 | quality_note: clean
+  tags: beans, close-up, green, hands, overcast, processing
+- clip_id: B034
+  file: ECONOMICS_aerial_034.mov
+  duration_s: 43.4 | fps: 30 | resolution: 1920x1080
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: aerial | location: Dak Lak / HCMC | shoot_day: 15
+  description: cleared land next to coffee farm, golden hour mood, drone
+  usable_range_s: 9.2-29.5 | quality_note: clean
+  tags: aerial, cleared, economics, golden hour, land, to
+- clip_id: B035
+  file: ECONOMICS_aerial_035.mov
+  duration_s: 15.4 | fps: 30 | resolution: 4096x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: aerial | location: Dak Lak / HCMC | shoot_day: 9
+  description: cleared land next to coffee farm, nostalgic mood, drone
+  usable_range_s: 0.0-14.6 | quality_note: lens flare
+  tags: aerial, coffee, economics, next, to, warm
+- clip_id: B036
+  file: PHIN_closeup_036.mov
+  duration_s: 11.0 | fps: 25 | resolution: 3840x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: close-up | location: Studio, District 3, HCMC | shoot_day: 4
+  description: condensed milk pouring into glass, intimate mood, gimbal
+  usable_range_s: 2.5-9.4 | quality_note: clean
+  tags: close-up, condensed, energetic, into, phin, pouring
+- clip_id: B037
+  file: ROASTING_closeup_037.mov
+  duration_s: 20.5 | fps: 24 | resolution: 3840x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: close-up | location: Da Lat, Lam Dong | shoot_day: 18
+  description: butter melting over hot beans, overcast mood, tripod
+  usable_range_s: 4.5-15.3 | quality_note: exposure shift mid-clip
+  tags: close-up, documentary, hot, melting, over, roasting
+- clip_id: B038
+  file: PHIN_macro_038.mov
+  duration_s: 43.4 | fps: 24 | resolution: 3840x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: macro | location: Studio, District 3, HCMC | shoot_day: 13
+  description: coffee dripping from phin filter, energetic mood, drone
+  usable_range_s: 10.5-40.0 | quality_note: clean
+  tags: coffee, filter, intimate, macro, phin
+- clip_id: B039
+  file: EGG_wide_039.mov
+  duration_s: 34.5 | fps: 25 | resolution: 4096x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 12
+  description: narrow staircase to Hanoi cafe, nostalgic mood, handheld
+  usable_range_s: 0.9-23.9 | quality_note: exposure shift mid-clip
+  tags: Hanoi, cafe, egg, to, warm, wide
+- clip_id: B040
+  file: EGG_wide_040.mov
+  duration_s: 20.1 | fps: 24 | resolution: 3840x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 2
+  description: narrow staircase to Hanoi cafe, overcast mood, tripod
+  usable_range_s: 1.5-16.0 | quality_note: exposure shift mid-clip
+  tags: Hanoi, cafe, calm, egg, staircase, wide
+- clip_id: B041
+  file: MODERN_wide_041.mov
+  duration_s: 34.2 | fps: 24 | resolution: 4096x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: wide | location: District 3, Ho Chi Minh City | shoot_day: 4
+  description: modern cafe interior with plants, overcast mood, slider
+  usable_range_s: 7.1-28.9 | quality_note: clean
+  tags: energetic, interior, modern, plants, wide
+- clip_id: B042
+  file: PHIN_macro_042.mov
+  duration_s: 18.4 | fps: 30 | resolution: 1920x1080
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: macro | location: Studio, District 3, HCMC | shoot_day: 2
+  description: coffee dripping from phin filter, nostalgic mood, drone
+  usable_range_s: 1.8-12.4 | quality_note: clean
+  tags: calm, coffee, from, macro, phin
+- clip_id: B043
+  file: INTRO_closeup_043.mov
+  duration_s: 44.5 | fps: 30 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: close-up | location: Buon Ma Thuot, Dak Lak | shoot_day: 3
+  description: steam rising from a glass of iced coffee, warm mood, tripod
+  usable_range_s: 9.2-36.6 | quality_note: lens flare
+  tags: a, close-up, from, intro, nostalgic, rising
+- clip_id: B044
+  file: FARM_closeup_044.mov
+  duration_s: 13.5 | fps: 24 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: close-up | location: Cu M'gar, Dak Lak | shoot_day: 1
+  description: ripe red cherries next to green ones, busy mood, tripod
+  usable_range_s: 0.4-10.0 | quality_note: clean
+  tags: cherries, close-up, farm, nostalgic, ripe, to
+- clip_id: B045
+  file: FARM_wide_045.mov
+  duration_s: 7.8 | fps: 24 | resolution: 4096x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: wide | location: Cu M'gar, Dak Lak | shoot_day: 15
+  description: irrigation sprinkler during dry season, warm mood, drone
+  usable_range_s: 1.5-6.3 | quality_note: clean
+  tags: calm, dry, during, farm, sprinkler, wide
+- clip_id: B046
+  file: EGG_overhead_046.mov
+  duration_s: 44.9 | fps: 25 | resolution: 4096x2160
+  camera: Sony FX3 | lens: 24-70mm f/2.8
+  shot_type: overhead | location: Hoan Kiem, Hanoi | shoot_day: 4
+  description: egg coffee cup in hot water bowl, busy mood, handheld
+  usable_range_s: 5.5-43.3 | quality_note: clean
+  tags: calm, cup, egg, hot, overhead
+- clip_id: B047
+  file: ROASTING_slowmotion_047.mov
+  duration_s: 27.6 | fps: 30 | resolution: 4096x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: slow-motion | location: Da Lat, Lam Dong | shoot_day: 17
+  description: beans dropping into cooling tray, documentary mood, gimbal
+  usable_range_s: 2.0-22.1 | quality_note: slight shake
+  tags: beans, golden hour, into, roasting, slow-motion, tray
+- clip_id: B048
+  file: EGG_closeup_048.mov
+  duration_s: 17.2 | fps: 25 | resolution: 4096x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: close-up | location: Hoan Kiem, Hanoi | shoot_day: 14
+  description: whisking yolk and sugar, overcast mood, handheld
+  usable_range_s: 3.1-12.5 | quality_note: clean
+  tags: and, close-up, egg, intimate, whisking, yolk
+- clip_id: B049
+  file: HISTORY_archival_049.mov
+  duration_s: 7.1 | fps: 30 | resolution: 1920x1080
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: archival | location: Buon Ma Thuot Coffee Museum | shoot_day: 5
+  description: black and white photo of colonial plantation, golden hour mood, tripod
+  usable_range_s: 1.0-5.9 | quality_note: lens flare
+  tags: archival, black, documentary, history, of, white
+- clip_id: B050
+  file: OUTRO_wide_050.mov
+  duration_s: 5.2 | fps: 25 | resolution: 1920x1080
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: wide | location: District 1, Ho Chi Minh City | shoot_day: 12
+  description: team wrap shot with farmers, intimate mood, drone
+  usable_range_s: 0.1-4.2 | quality_note: clean
+  tags: busy, outro, team, wide, with, wrap
+- clip_id: B051
+  file: HISTORY_archival_051.mov
+  duration_s: 12.5 | fps: 25 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: archival | location: Buon Ma Thuot Coffee Museum | shoot_day: 9
+  description: 1990s export port footage, busy mood, gimbal
+  usable_range_s: 0.1-8.9 | quality_note: focus breathing at start
+  tags: 1990s, archival, energetic, export, history, port
+- clip_id: B052
+  file: OUTRO_wide_052.mov
+  duration_s: 9.0 | fps: 30 | resolution: 3840x2160
+  camera: Sony FX3 | lens: 24-70mm f/2.8
+  shot_type: wide | location: District 1, Ho Chi Minh City | shoot_day: 3
+  description: team wrap shot with farmers, intimate mood, tripod
+  usable_range_s: 1.7-6.2 | quality_note: exposure shift mid-clip
+  tags: golden hour, outro, shot, team, wide, with
+- clip_id: B053
+  file: PHIN_macro_053.mov
+  duration_s: 6.6 | fps: 24 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: macro | location: Studio, District 3, HCMC | shoot_day: 6
+  description: grounds blooming with hot water, golden hour mood, slider
+  usable_range_s: 1.2-4.1 | quality_note: focus breathing at start
+  tags: calm, hot, macro, phin, water, with
+- clip_id: B054
+  file: EGG_wide_054.mov
+  duration_s: 12.1 | fps: 30 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 4
+  description: Hoan Kiem lake from balcony, nostalgic mood, slider
+  usable_range_s: 1.0-7.8 | quality_note: focus breathing at start
+  tags: Hoan, balcony, egg, lake, overcast, wide
+- clip_id: B055
+  file: INTRO_aerial_055.mov
+  duration_s: 15.7 | fps: 24 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: aerial | location: Buon Ma Thuot, Dak Lak | shoot_day: 9
+  description: drone over coffee hills at sunrise, busy mood, slider
+  usable_range_s: 1.1-10.2 | quality_note: focus breathing at start
+  tags: aerial, hills, intro, over, overcast, sunrise
+- clip_id: B056
+  file: PROCESSING_timelapse_056.mov
+  duration_s: 38.0 | fps: 25 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: timelapse | location: Krong Pac, Dak Lak | shoot_day: 13
+  description: drying yard shadows moving, golden hour mood, drone
+  usable_range_s: 8.2-23.4 | quality_note: slight shake
+  tags: drying, moving, processing, timelapse, warm, yard
+- clip_id: B057
+  file: OUTRO_wide_057.mov
+  duration_s: 7.8 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: wide | location: District 1, Ho Chi Minh City | shoot_day: 11
+  description: team wrap shot with farmers, calm mood, gimbal
+  usable_range_s: 0.3-7.6 | quality_note: slight shake
+  tags: outro, overcast, shot, team, wide, wrap
+- clip_id: B058
+  file: ECONOMICS_medium_058.mov
+  duration_s: 6.3 | fps: 25 | resolution: 1920x1080
+  camera: Canon R5 C | lens: built-in
+  shot_type: medium | location: Dak Lak / HCMC | shoot_day: 8
+  description: cooperative meeting, intimate mood, tripod
+  usable_range_s: 0.5-4.2 | quality_note: exposure shift mid-clip
+  tags: cooperative, documentary, economics, medium, meeting
+- clip_id: B059
+  file: OUTRO_aerial_059.mov
+  duration_s: 7.3 | fps: 25 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: aerial | location: District 1, Ho Chi Minh City | shoot_day: 6
+  description: drone rising over highlands sunset, overcast mood, drone
+  usable_range_s: 1.1-6.6 | quality_note: exposure shift mid-clip
+  tags: aerial, calm, highlands, outro, rising, sunset
+- clip_id: B060
+  file: OUTRO_closeup_060.mov
+  duration_s: 16.3 | fps: 25 | resolution: 3840x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: close-up | location: District 1, Ho Chi Minh City | shoot_day: 16
+  description: last sip of iced coffee, documentary mood, handheld
+  usable_range_s: 1.8-11.8 | quality_note: clean
+  tags: close-up, coffee, energetic, last, outro, sip
+- clip_id: B061
+  file: EGG_wide_061.mov
+  duration_s: 5.4 | fps: 25 | resolution: 3840x2160
+  camera: Sony FX3 | lens: 24-70mm f/2.8
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 3
+  description: Hoan Kiem lake from balcony, nostalgic mood, tripod
+  usable_range_s: 0.8-4.3 | quality_note: focus breathing at start
+  tags: Hoan, Kiem, balcony, egg, overcast, wide
+- clip_id: B062
+  file: EGG_macro_062.mov
+  duration_s: 43.2 | fps: 25 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: macro | location: Hoan Kiem, Hanoi | shoot_day: 11
+  description: spoon breaking egg foam, overcast mood, drone
+  usable_range_s: 10.6-27.4 | quality_note: focus breathing at start
+  tags: breaking, busy, egg, foam, macro, spoon
+- clip_id: B063
+  file: ECONOMICS_wide_063.mov
+  duration_s: 18.7 | fps: 25 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: wide | location: Dak Lak / HCMC | shoot_day: 13
+  description: warehouse of export sacks, calm mood, drone
+  usable_range_s: 1.9-13.8 | quality_note: exposure shift mid-clip
+  tags: economics, export, of, warehouse, warm, wide
+- clip_id: B064
+  file: STREET_closeup_064.mov
+  duration_s: 33.4 | fps: 30 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: District 1, Ho Chi Minh City | shoot_day: 5
+  description: ice glasses lined up on cart, busy mood, drone
+  usable_range_s: 2.8-27.8 | quality_note: exposure shift mid-clip
+  tags: busy, cart, close-up, lined, street, up
+- clip_id: B065
+  file: HISTORY_archival_065.mov
+  duration_s: 18.8 | fps: 25 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: archival | location: Buon Ma Thuot Coffee Museum | shoot_day: 17
+  description: 1990s export port footage, energetic mood, gimbal
+  usable_range_s: 0.4-16.3 | quality_note: clean
+  tags: 1990s, archival, documentary, export, history, port
+- clip_id: B066
+  file: PHIN_slowmotion_066.mov
+  duration_s: 12.5 | fps: 25 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: slow-motion | location: Studio, District 3, HCMC | shoot_day: 3
+  description: stirring milk coffee, busy mood, drone
+  usable_range_s: 0.9-11.4 | quality_note: slight shake
+  tags: coffee, documentary, milk, phin, slow-motion, stirring
+- clip_id: B067
+  file: FARM_closeup_067.mov
+  duration_s: 37.9 | fps: 30 | resolution: 3840x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: close-up | location: Cu M'gar, Dak Lak | shoot_day: 15
+  description: ripe red cherries next to green ones, overcast mood, gimbal
+  usable_range_s: 0.4-28.3 | quality_note: focus breathing at start
+  tags: cherries, close-up, farm, next, nostalgic, to
+- clip_id: B068
+  file: PROCESSING_closeup_068.mov
+  duration_s: 41.0 | fps: 24 | resolution: 1920x1080
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: close-up | location: Krong Pac, Dak Lak | shoot_day: 15
+  description: hulling machine output chute, busy mood, tripod
+  usable_range_s: 4.7-29.2 | quality_note: clean
+  tags: chute, close-up, golden hour, hulling, output, processing
+- clip_id: B069
+  file: OUTRO_wide_069.mov
+  duration_s: 26.3 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: wide | location: District 1, Ho Chi Minh City | shoot_day: 17
+  description: team wrap shot with farmers, busy mood, slider
+  usable_range_s: 5.6-18.8 | quality_note: clean
+  tags: busy, farmers, outro, shot, wide, with
+- clip_id: B070
+  file: PROCESSING_closeup_070.mov
+  duration_s: 42.1 | fps: 25 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: Krong Pac, Dak Lak | shoot_day: 2
+  description: hands sorting green beans, warm mood, tripod
+  usable_range_s: 4.2-31.6 | quality_note: clean
+  tags: beans, close-up, golden hour, hands, processing, sorting
+- clip_id: B071
+  file: OUTRO_closeup_071.mov
+  duration_s: 8.8 | fps: 25 | resolution: 4096x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: close-up | location: District 1, Ho Chi Minh City | shoot_day: 5
+  description: last sip of iced coffee, nostalgic mood, gimbal
+  usable_range_s: 1.7-6.9 | quality_note: focus breathing at start
+  tags: close-up, coffee, last, outro, sip, warm
+- clip_id: B072
+  file: ECONOMICS_wide_072.mov
+  duration_s: 7.7 | fps: 25 | resolution: 3840x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: wide | location: Dak Lak / HCMC | shoot_day: 10
+  description: durian orchard replacing coffee, documentary mood, handheld
+  usable_range_s: 0.2-5.4 | quality_note: exposure shift mid-clip
+  tags: coffee, durian, economics, orchard, overcast, wide
+- clip_id: B073
+  file: MODERN_closeup_073.mov
+  duration_s: 33.2 | fps: 25 | resolution: 4096x2160
+  camera: Sony A7S III | lens: 35mm f/1.4
+  shot_type: close-up | location: District 3, Ho Chi Minh City | shoot_day: 1
+  description: coconut coffee in glass, documentary mood, tripod
+  usable_range_s: 5.1-23.1 | quality_note: clean
+  tags: close-up, coconut, coffee, golden hour, in, modern
+- clip_id: B074
+  file: MODERN_closeup_074.mov
+  duration_s: 36.0 | fps: 30 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: close-up | location: District 3, Ho Chi Minh City | shoot_day: 13
+  description: coconut coffee in glass, intimate mood, handheld
+  usable_range_s: 7.9-22.2 | quality_note: clean
+  tags: close-up, coconut, coffee, golden hour, in, modern
+- clip_id: B075
+  file: PROCESSING_medium_075.mov
+  duration_s: 29.4 | fps: 30 | resolution: 1920x1080
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: medium | location: Krong Pac, Dak Lak | shoot_day: 5
+  description: vibrating size sorter, busy mood, gimbal
+  usable_range_s: 0.3-24.1 | quality_note: clean
+  tags: busy, medium, processing, size, sorter, vibrating
+- clip_id: B076
+  file: EGG_overhead_076.mov
+  duration_s: 11.5 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: overhead | location: Hoan Kiem, Hanoi | shoot_day: 2
+  description: egg coffee cup in hot water bowl, energetic mood, handheld
+  usable_range_s: 0.9-8.3 | quality_note: lens flare
+  tags: bowl, egg, golden hour, hot, in, overhead
+- clip_id: B077
+  file: OUTRO_aerial_077.mov
+  duration_s: 18.0 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: aerial | location: District 1, Ho Chi Minh City | shoot_day: 11
+  description: drone rising over highlands sunset, intimate mood, gimbal
+  usable_range_s: 1.2-16.6 | quality_note: slight shake
+  tags: aerial, golden hour, highlands, outro, rising, sunset
+- clip_id: B078
+  file: EGG_wide_078.mov
+  duration_s: 14.2 | fps: 24 | resolution: 4096x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: wide | location: Hoan Kiem, Hanoi | shoot_day: 3
+  description: narrow staircase to Hanoi cafe, calm mood, handheld
+  usable_range_s: 1.5-14.2 | quality_note: clean
+  tags: busy, cafe, egg, staircase, to, wide
+- clip_id: B079
+  file: OUTRO_closeup_079.mov
+  duration_s: 21.7 | fps: 30 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: District 1, Ho Chi Minh City | shoot_day: 14
+  description: last sip of iced coffee, golden hour mood, tripod
+  usable_range_s: 0.9-16.9 | quality_note: exposure shift mid-clip
+  tags: close-up, iced, last, of, outro, overcast
+- clip_id: B080
+  file: INTRO_aerial_080.mov
+  duration_s: 29.8 | fps: 25 | resolution: 3840x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: aerial | location: Buon Ma Thuot, Dak Lak | shoot_day: 1
+  description: drone over coffee hills at sunrise, nostalgic mood, tripod
+  usable_range_s: 1.1-25.1 | quality_note: clean
+  tags: aerial, drone, intro, over, overcast, sunrise
+- clip_id: B081
+  file: STREET_medium_081.mov
+  duration_s: 28.4 | fps: 30 | resolution: 4096x2160
+  camera: Sony FX3 | lens: 24-70mm f/2.8
+  shot_type: medium | location: District 1, Ho Chi Minh City | shoot_day: 12
+  description: owner pouring coffee at stall, intimate mood, tripod
+  usable_range_s: 2.6-25.7 | quality_note: clean
+  tags: busy, coffee, medium, pouring, stall, street
+- clip_id: B082
+  file: HISTORY_archival_082.mov
+  duration_s: 10.8 | fps: 30 | resolution: 4096x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: archival | location: Buon Ma Thuot Coffee Museum | shoot_day: 18
+  description: black and white photo of colonial plantation, overcast mood, gimbal
+  usable_range_s: 0.3-9.8 | quality_note: clean
+  tags: and, archival, history, of, overcast, white
+- clip_id: B083
+  file: FARM_medium_083.mov
+  duration_s: 10.3 | fps: 30 | resolution: 4096x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: medium | location: Cu M'gar, Dak Lak | shoot_day: 3
+  description: farmer stripping cherries off branch, documentary mood, tripod
+  usable_range_s: 2.1-10.2 | quality_note: clean
+  tags: branch, cherries, farm, farmer, intimate, medium
+- clip_id: B084
+  file: FARM_closeup_084.mov
+  duration_s: 24.4 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: Cu M'gar, Dak Lak | shoot_day: 7
+  description: ripe red cherries next to green ones, intimate mood, slider
+  usable_range_s: 4.8-17.0 | quality_note: lens flare
+  tags: cherries, close-up, farm, overcast, ripe, to
+- clip_id: B085
+  file: MODERN_closeup_085.mov
+  duration_s: 40.1 | fps: 24 | resolution: 1920x1080
+  camera: Canon R5 C | lens: built-in
+  shot_type: close-up | location: District 3, Ho Chi Minh City | shoot_day: 13
+  description: latte art being poured, busy mood, tripod
+  usable_range_s: 10.0-35.6 | quality_note: exposure shift mid-clip
+  tags: art, close-up, documentary, latte, modern, poured
+- clip_id: B086
+  file: HISTORY_closeup_086.mov
+  duration_s: 31.6 | fps: 25 | resolution: 3840x2160
+  camera: iPhone 16 Pro | lens: 16-35mm f/4
+  shot_type: close-up | location: Buon Ma Thuot Coffee Museum | shoot_day: 18
+  description: robusta tree trunk with moss, documentary mood, gimbal
+  usable_range_s: 5.1-21.3 | quality_note: clean
+  tags: busy, close-up, history, moss, robusta, with
+- clip_id: B087
+  file: FARM_closeup_087.mov
+  duration_s: 42.3 | fps: 24 | resolution: 5.1K
+  camera: DJI Mavic 3 Pro | lens: 90mm macro
+  shot_type: close-up | location: Cu M'gar, Dak Lak | shoot_day: 12
+  description: ripe red cherries next to green ones, nostalgic mood, drone
+  usable_range_s: 10.0-34.2 | quality_note: clean
+  tags: cherries, close-up, energetic, farm, ones, ripe
+- clip_id: B088
+  file: FARM_medium_088.mov
+  duration_s: 25.4 | fps: 30 | resolution: 3840x2160
+  camera: Canon R5 C | lens: built-in
+  shot_type: medium | location: Cu M'gar, Dak Lak | shoot_day: 5
+  description: family loading sacks onto motorbike, calm mood, handheld
+  usable_range_s: 1.1-21.6 | quality_note: exposure shift mid-clip
+  tags: family, farm, intimate, medium, motorbike, onto
+- clip_id: B089
+  file: ECONOMICS_aerial_089.mov
+  duration_s: 11.9 | fps: 30 | resolution: 4096x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: aerial | location: Dak Lak / HCMC | shoot_day: 1
+  description: cleared land next to coffee farm, nostalgic mood, slider
+  usable_range_s: 1.5-10.1 | quality_note: clean
+  tags: aerial, economics, energetic, farm, next, to
+- clip_id: B090
+  file: EGG_overhead_090.mov
+  duration_s: 5.5 | fps: 25 | resolution: 4096x2160
+  camera: GoPro Hero 13 | lens: 50mm f/1.2
+  shot_type: overhead | location: Hoan Kiem, Hanoi | shoot_day: 16
+  description: egg coffee cup in hot water bowl, intimate mood, slider
+  usable_range_s: 0.6-4.0 | quality_note: clean
+  tags: bowl, busy, cup, egg, overhead, water

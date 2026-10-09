@@ -1,0 +1,14 @@
+[project]
+name = "llm-benchmark"
+version = "0.1.0"
+description = "Cross-platform local LLM benchmark (llama.cpp / MLX / LM Studio)"
+requires-python = ">=3.11"
+dependencies = [
+    "huggingface-hub>=1.0",
+    "psutil>=7.0",
+    # MLX only exists for Apple Silicon; other machines skip it automatically.
+    "mlx-lm>=0.32; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+
+[tool.uv]
+package = false
