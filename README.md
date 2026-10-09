@@ -15,6 +15,7 @@ Each run reports **tokens in, tokens out, TTFT, prefill tok/s, decode tok/s** (p
 and estimated memory). The results are printed as a table and saved to `results/<date>_<host>.md` (and `.json`).
 If the machine cannot hold a model, its row says **Too large to run**.
 The generated text for every run is saved in `results/outputs/<run>/`, so you can compare answer quality as well as speed.
+`results/` is gitignored; reports stay on the machine that produced them.
 
 Models so far: Qwen3.8 27B, Qwen3.6 35B A3B, Gemma 4 E2B, Gemma 4 E4B, Gemma 4 12B QAT, Gemma 4 26B A4B QAT
 (4-bit everywhere; QAT models use Google's Q4_0 GGUF).

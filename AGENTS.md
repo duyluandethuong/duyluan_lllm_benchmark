@@ -9,6 +9,7 @@ when you learn something non-obvious, add it here and commit it with your change
 - Python via `uv` (`uv sync`, `uv run bench.py`). Don't use pip or conda.
 - Don't commit or push unless asked.
 - Results are data, not prose: tables in `results/*.md`, raw numbers in `results/*.json`.
+- **Results are never committed** (`results/` is gitignored, the user's decision). They stay on the machine that ran them.
 
 ## Layout
 ```
@@ -71,7 +72,7 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
 
 ## Status
 - 2026-10-09: built and verified on macOS (M5 Max, 128 GB) with all 4 engines. The smoke model passed on all of them.
-  Full Qwen3.8 27B / Qwen3.6 35B A3B Mac run in progress; results land in `results/`.
+  No clean Mac numbers recorded yet (see below).
 - **Not yet run on Windows or Linux.** Expect to fix: GPU detection (`hardware.py`: nvidia-smi,
   /sys/class/drm for AMD, Windows registry qwMemorySize), llama-server discovery, and LM Studio paths on Windows
   (`%USERPROFILE%\.lmstudio`). If detection is wrong, the user can pass `--vram-gb` / `--ram-gb`; fix the code too.
@@ -81,7 +82,7 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   which isn't comparable with the other engines. Also on that run the stream stopped mid-reasoning with
   "Model unloaded" (it overlapped the parallel run, so possibly memory pressure). To do: find another way to turn
   thinking off (e.g. /v1/chat/completions with chat_template_kwargs) and retest on an idle machine.
-- 2026-10-10: no clean Mac numbers yet. In results/2026-10-09_200053_LuanM5Max (llama.cpp only, left uncommitted)
+- 2026-10-10: no clean Mac numbers yet. In the Mac's local results/2026-10-09_200053_LuanM5Max (llama.cpp only)
   the Gemma rows are clean but the Qwen rows overlapped another run. A clean llama.cpp+MLX run was stopped because the
   machine was busy (Xcode/VM). Still to do on an idle Mac: run `--all -e llamacpp,mlx`, fix LM Studio's reasoning
   toggle, then `-e lmstudio`.

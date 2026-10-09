@@ -3,5 +3,4 @@ __pycache__/
 *.pyc
 models/
 .DS_Store
-results/logs/
-results/.bench.lock
+results/
