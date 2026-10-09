@@ -16,6 +16,8 @@ import os
 import sys
 from pathlib import Path
 
+import psutil
+
 from llmbench import ROOT, fetch, prompt
 from llmbench.backends import ALIASES, TooLarge, all_backends
 from llmbench.backends.lmstudio import loaded_elsewhere
@@ -119,6 +121,30 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
     return res
 
 
+LOCK = ROOT / "results" / ".bench.lock"
+
+
+def acquire_lock() -> None:
+    """Two benchmarks sharing one GPU silently halve each other's numbers: refuse."""
+    try:
+        pid = int(LOCK.read_text().strip())
+        if pid != os.getpid() and psutil.pid_exists(pid) and "bench.py" in " ".join(psutil.Process(pid).cmdline()):
+            sys.exit(f"Another benchmark is already running (pid {pid}). Wait for it, or stop it first; "
+                     f"parallel runs skew both results. (Stale lock? delete {LOCK})")
+    except (FileNotFoundError, ValueError, psutil.Error):
+        pass
+    LOCK.parent.mkdir(exist_ok=True)
+    LOCK.write_text(str(os.getpid()))
+
+
+def release_lock() -> None:
+    try:
+        if LOCK.read_text().strip() == str(os.getpid()):
+            LOCK.unlink()
+    except (FileNotFoundError, OSError):
+        pass
+
+
 def main() -> None:
     # Windows consoles/redirects default to cp1252; never crash on a table character.
     for stream in (sys.stdout, sys.stderr):
@@ -151,6 +177,8 @@ def main() -> None:
 
     text = prompt.load()
     results: list[Result] = []
+    if not args.download_only:
+        acquire_lock()
     try:
         for model in selected:
             for b in engines:
@@ -160,6 +188,8 @@ def main() -> None:
                 results.append(bench_one(model, b, hw, s, args, text))
     except KeyboardInterrupt:
         print("\nInterrupted; writing partial report.")
+    finally:
+        release_lock()
 
     if not results:
         sys.exit("Nothing was run (no model/engine combination matched).")

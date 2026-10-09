@@ -4,3 +4,4 @@ __pycache__/
 models/
 .DS_Store
 results/logs/
+results/.bench.lock

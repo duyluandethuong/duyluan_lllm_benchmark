@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import subprocess
 import sys
@@ -51,7 +52,7 @@ class Mlx(Backend):
     def load(self, model: Model, path: Path, placement: str, s: Settings) -> float:
         cfg = json.dumps({"path": str(path), "reasoning": s.reasoning})
         LOG_DIR.mkdir(parents=True, exist_ok=True)
-        self.log_path = LOG_DIR / f"mlx_{model.id}.log"
+        self.log_path = LOG_DIR / f"mlx_{model.id}_{os.getpid()}.log"
         self.log = open(self.log_path, "w", encoding="utf-8", errors="replace")
         self.proc = subprocess.Popen(
             [sys.executable, "-m", "llmbench.backends.mlx_worker", cfg], cwd=ROOT,

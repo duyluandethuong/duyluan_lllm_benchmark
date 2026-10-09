@@ -55,8 +55,10 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
 - QAT Gemma checkpoints were trained for Q4_0, so the GGUF entries use Google's own Q4_0 files.
 - File reuse order: ./models, then the HF cache (`try_to_load_from_cache`, resolved to blobs/), then LM Studio's folder.
   Matches are by exact repo + filename + size. An HF cache dir can exist with no snapshot (empty); that's a miss.
-- **Don't run anything else (not even a smoke test) while a benchmark is running.** It skews the numbers.
-  This happened once on 2026-10-09 and the affected combination had to be rerun.
+- **Never run two benchmarks at once.** On 2026-10-09 an agent run and a run from the user's terminal
+  overlapped, and both slowed down about 2x (Qwen3.6 A3B decode went from ~50 to 27 tok/s). bench.py now holds
+  `results/.bench.lock` and refuses to start a second run (--download-only is exempt). Engine logs are named
+  with the pid, so parallel processes can't overwrite each other's logs.
 - Every run's generated text goes to `results/outputs/<run>/`. Check it when tokens_out hits the
   --max-tokens cap (looping, or thinking despite reasoning off).
 
@@ -67,3 +69,10 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   /sys/class/drm for AMD, Windows registry qwMemorySize), llama-server discovery, and LM Studio paths on Windows
   (`%USERPROFILE%\.lmstudio`). If detection is wrong, the user can pass `--vram-gb` / `--ram-gb`; fix the code too.
 - 2026-10-09: added Gemma 4 E2B / E4B / 12B QAT / 26B A4B QAT (not benchmarked yet).
+- **Open issue: LM Studio + MLX Qwen3.8 ignores reasoning off.** LM Studio answers `"reasoning": "off"` with
+  "does not expose reasoning configuration". lmstudio.py then retries without the field and the model thinks,
+  which isn't comparable with the other engines. Also on that run the stream stopped mid-reasoning with
+  "Model unloaded" (it overlapped the parallel run, so possibly memory pressure). To do: find another way to turn
+  thinking off (e.g. /v1/chat/completions with chat_template_kwargs) and retest on an idle machine.
+- mlx-lm's Qwen3.8 27B run generated the full 4096-token cap (llama.cpp stopped at ~1.7K). Check
+  results/outputs for looping once a clean run exists.

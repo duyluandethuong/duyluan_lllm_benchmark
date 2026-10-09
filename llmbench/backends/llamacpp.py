@@ -62,7 +62,7 @@ class LlamaCpp(Backend):
         cmd += list(model.llamacpp_args)
 
         LOG_DIR.mkdir(parents=True, exist_ok=True)
-        self.log_path = LOG_DIR / f"llamacpp_{model.id}.log"
+        self.log_path = LOG_DIR / f"llamacpp_{model.id}_{os.getpid()}.log"
         self.log = open(self.log_path, "w", encoding="utf-8", errors="replace")
         t0 = time.perf_counter()
         self.proc = subprocess.Popen(cmd, stdout=self.log, stderr=subprocess.STDOUT)
