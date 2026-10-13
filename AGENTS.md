@@ -111,14 +111,14 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
     32.0.16.1662), e.g. Qwen3.6 35B A3B mid-generation, or on a request that reuses the slot's prompt cache.
     Default flags (4 slots) crashed on the first request. `-np 1 --cache-ram 0` survived 20+ requests.
 - 2026-10-09: added Gemma 4 E2B / E4B / 12B QAT / 26B A4B QAT (not benchmarked yet).
-- **Open issue: LM Studio + MLX Qwen3.8 ignores reasoning off.** LM Studio answers `"reasoning": "off"` with
-  "does not expose reasoning configuration". lmstudio.py then retries without the field and the model thinks,
-  which isn't comparable with the other engines. Also on that run the stream stopped mid-reasoning with
-  "Model unloaded" (it overlapped the parallel run, so possibly memory pressure). To do: find another way to turn
-  thinking off (e.g. /v1/chat/completions with chat_template_kwargs) and retest on an idle machine.
-- 2026-10-10: no clean Mac numbers yet. In the Mac's local results/2026-10-09_200053_LuanM5Max (llama.cpp only)
-  the Gemma rows are clean but the Qwen rows overlapped another run. A clean llama.cpp+MLX run was stopped because the
-  machine was busy (Xcode/VM). Still to do on an idle Mac: run `--all -e llamacpp,mlx`, fix LM Studio's reasoning
-  toggle, then `-e lmstudio`.
-- mlx-lm's Qwen3.8 27B run generated the full 4096-token cap (llama.cpp stopped at ~1.7K). Check
-  results/outputs for looping once a clean run exists.
+- **Fixed 2026-10-13: LM Studio + MLX thinking toggle.** LM Studio offers `reasoning: off` only for GGUF files
+  whose template it recognises and for its own catalog models (defined by a model.yaml under <lmstudio>/hub/models).
+  Raw mlx-community repos get no toggle, and `chat_template_kwargs`, `reasoning_effort: none` and `/no_think` are all
+  ignored. lmstudio.py now writes <lmstudio>/hub/models/llmbench/<id>-mlx/{model.yaml,manifest.json} (base key =
+  "<publisher>/<repo>".lower(), customField enableThinking -> setJinjaVariable enable_thinking) and loads that key.
+  Verified: 0 reasoning tokens with reasoning off.
+- 2026-10-13: first clean full Mac run (M5 Max 128 GB, idle except one light VM): all 6 models x 4 engines, 1 run each.
+  Engine-reported speeds match client-side wall time on every row. Single runs vary: rerun with --runs 3 before
+  drawing fine conclusions. Unexplained so far: LM Studio GGUF decodes Qwen3.8 27B at 34.8 tok/s vs llama.cpp 23.7
+  on the same file, while it is slower than llama.cpp on every other model.
+- The earlier mlx-lm Qwen3.8 4096-token output was a one-off; the clean run stopped at 1,800 tokens.
