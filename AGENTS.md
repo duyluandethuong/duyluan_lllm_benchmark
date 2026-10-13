@@ -122,3 +122,18 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   drawing fine conclusions. Unexplained so far: LM Studio GGUF decodes Qwen3.8 27B at 34.8 tok/s vs llama.cpp 23.7
   on the same file, while it is slower than llama.cpp on every other model.
 - The earlier mlx-lm Qwen3.8 4096-token output was a one-off; the clean run stopped at 1,800 tokens.
+- **2026-10-14: direct-engine Mac rerun (no LM Studio)**, to compare with Tài's M4 Max and the N1X: bench code at
+  2b6d377, `--engine llamacpp,mlx --runs 3`, one model per invocation with a 300 s cooldown between models,
+  `LLAMA_ARG_N_GPU_LAYERS=999`, KV f16, flash attention auto (= on), llama.cpp b11429, mlx-lm 0.32.0 / mlx 0.32.3,
+  AC power, **High Power Mode on** (`pmset -g` powermode 2), LM Studio fully quit. Local results:
+  `results/2026-10-14_direct_M5Max/` (+ SUMMARY_M5_vs_M4.md, llama-bench/). M5 Max beats M4 Max on all 12
+  model x engine pairs: decode 1.13–1.77x, prefill 2–4x. Qwen3.8 27B decode = 63% (llama.cpp) / 76% (MLX) of the
+  614 GB/s ÷ 16.46 GB bandwidth ceiling. llama-bench (pp20000, tg128 @ d20000) agrees with the server within 1.0–1.2x.
+  - **The "M5 slower than M4" numbers came from LM Studio**, not the hardware: LM Studio's own runtimes
+    (llama.cpp-mac 2.55.0, mlx-llm 1.13.1) are 20–40% slower than llama-server / mlx-lm on the same files
+    (Qwen3.6 A3B MLX: 77 vs 121 tok/s). Compare machines with direct engines only.
+  - **High Power Mode matters on M5 Max.** Without it (2026-10-13): mlx-lm Qwen3.8 decode 22.9, Gemma E2B prefill
+    6.1K tok/s; with it: 28.4 and 16.6K. Record `pmset -g | grep powermode` with every Mac run.
+  - mlx-lm's first request after load pays Metal kernel compilation: prefill run 1 can be ~3x slower than runs 2–3
+    (Qwen3.6 A3B: 1,093 vs ~3,900). The report averages runs, so also look at the median.
+  - Back-to-back llama.cpp runs throttle a little (Gemma E4B decode 85 -> 81 -> 76 over 3 runs).
