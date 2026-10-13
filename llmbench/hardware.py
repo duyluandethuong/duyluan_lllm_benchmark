@@ -2,7 +2,7 @@
 
 Supported detection:
   - Apple Silicon: unified memory (GPU budget = Metal working-set limit)
-  - NVIDIA (any OS): nvidia-smi
+  - NVIDIA (any OS): nvidia-smi (a single GPU reporting ~all of RAM, e.g. RTX Spark N1X, is unified)
   - AMD on Linux: /sys/class/drm/*/device/mem_info_vram_total
   - Any GPU on Windows: display-adapter registry key (qwMemorySize)
 Unknown or new hardware: pass --vram-gb / --ram-gb to override detection.
@@ -110,7 +110,10 @@ def _nvidia() -> list[Gpu]:
     gpus = []
     for line in out.strip().splitlines():
         name, mib = (p.strip() for p in line.rsplit(",", 1))
-        gpus.append(Gpu(name, float(mib) / 1024))
+        try:
+            gpus.append(Gpu(name, float(mib) / 1024))
+        except ValueError:  # e.g. "NVIDIA NPU, [N/A]" on RTX Spark N1X
+            continue
     return gpus
 
 
@@ -180,5 +183,10 @@ def detect(vram_override: float | None = None, ram_override: float | None = None
     if vram_override:
         gpus = [Gpu(gpus[0].name if gpus else "GPU (manual)", vram_override)]
     hw.gpus = gpus
+    if len(gpus) == 1 and gpus[0].vram_gb >= 0.9 * ram_gb:
+        # Unified memory (e.g. NVIDIA RTX Spark N1X / GB10): the "VRAM" nvidia-smi reports is system RAM.
+        hw.unified = True
+        hw.gpu_budget_gb = vram_override or ram_gb * 0.75
+        return hw
     hw.gpu_budget_gb = max(0.0, hw.vram_gb - 0.5 * len(gpus))  # driver/context overhead per GPU
     return hw

@@ -27,6 +27,7 @@ class Result:
     placement: str = "—"
     est_gb: float | None = None
     load_s: float | None = None
+    bench_prefill_tps: float | None = None  # llama.cpp only: llama-bench on a same-length prompt
     runs: list[RunMetrics] = field(default_factory=list)
 
     def avg(self, attr: str) -> float | None:
@@ -43,7 +44,8 @@ def _i(v: float | None) -> str:
 
 
 SUMMARY_HEADER = ["Model", "Engine", "Quant", "Status", "Placement", "Est. mem (GB)", "Load (s)",
-                  "Tokens in", "Tokens out", "TTFT (s)", "Prefill tok/s", "Decode tok/s", "Total (s)"]
+                  "Tokens in", "Tokens out", "TTFT (s)", "Prefill tok/s", "llama-bench prefill tok/s",
+                  "Decode tok/s", "Total (s)"]
 
 
 def summary_rows(results: list[Result]) -> list[list[str]]:
@@ -52,7 +54,7 @@ def summary_rows(results: list[Result]) -> list[list[str]]:
         rows.append([
             r.model, r.engine, r.quant, r.status, r.placement, _f(r.est_gb), _f(r.load_s),
             _i(r.avg("tokens_in")), _i(r.avg("tokens_out")), _f(r.avg("ttft_s"), 2),
-            _f(r.avg("prefill_tps")), _f(r.avg("decode_tps")), _f(r.avg("total_s")),
+            _f(r.avg("prefill_tps")), _f(r.bench_prefill_tps), _f(r.avg("decode_tps")), _f(r.avg("total_s")),
         ])
     return rows
 
@@ -100,6 +102,8 @@ def write(results: list[Result], hw: Hardware, s: Settings, engines: dict[str, s
 - **Tokens in / out**: prompt and generated tokens as counted by the engine's own tokenizer (output includes reasoning tokens).
 - **TTFT**: wall time from sending the request to receiving the first streamed token (client-side, includes prompt processing).
 - **Prefill tok/s**: prompt processing speed reported by the engine (LM Studio: tokens in ÷ its own TTFT).
+- **llama-bench prefill tok/s** (llama.cpp only): `llama-bench -p <tokens in> -n 0 -r 2` on the same GGUF, run after
+  the server is stopped. A cross-check: if it is far above the server's prefill, the server path is stalling.
 - **Decode tok/s**: generation speed reported by the engine, excluding prefill.
 - **Est. mem**: weights + KV cache at the configured context + 1.5 GB overhead; used for the "{TOO_LARGE}" check.
 """

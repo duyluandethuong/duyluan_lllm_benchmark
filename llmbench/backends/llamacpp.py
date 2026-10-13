@@ -7,6 +7,7 @@ Finds the binary from --llama-server, $LLAMA_SERVER, or PATH. Install:
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import socket
@@ -57,7 +58,11 @@ class LlamaCpp(Backend):
         ]
         if placement == "CPU":
             cmd += ["-ngl", "0"]
-        # GPU / GPU+CPU: leave -ngl unset; llama.cpp's --fit (default on) offloads as
+        elif placement.startswith("GPU") and placement != "GPU+CPU":
+            # Our fit check says it fits: ask for every layer on the GPU explicitly rather than
+            # rely on --fit's auto -ngl (on the N1X both give full offload; see AGENTS.md).
+            cmd += ["-ngl", "999"]
+        # GPU+CPU: leave -ngl unset; llama.cpp's --fit (default on) offloads as
         # many layers as fit and keeps the rest on CPU.
         cmd += list(model.llamacpp_args)
 
@@ -109,6 +114,24 @@ class LlamaCpp(Backend):
             total_s=total,
             text="".join(parts),
         )
+
+    def bench_prefill(self, path: Path, placement: str, n_tokens: int) -> float | None:
+        # llama-bench sits next to llama-server. It is a cross-check for the server's prefill
+        # number, which stalls on some drivers (see AGENTS.md, RTX Spark N1X).
+        if placement == "GPU+CPU":  # llama-bench has no --fit; full offload would not fit
+            return None
+        exe = Path(shutil.which(self.binary) or self.binary)
+        bench = exe.with_name(exe.name.replace("llama-server", "llama-bench"))
+        if not bench.exists():
+            return None
+        cmd = [str(bench), "-m", str(path), "-p", str(n_tokens), "-n", "0", "-r", "2", "-o", "json",
+               "-ngl", "0" if placement == "CPU" else "999"]  # default -1 (auto) can leave layers on CPU
+        print(f"  llama-bench prefill ({n_tokens:,} tokens)...", flush=True)
+        try:
+            out = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+            return float(json.loads(out.stdout)[0]["avg_ts"])
+        except (OSError, subprocess.SubprocessError, ValueError, LookupError, TypeError):
+            return None
 
     def unload(self) -> None:
         if self.proc and self.proc.poll() is None:

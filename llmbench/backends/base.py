@@ -58,6 +58,10 @@ class Backend(ABC):
     def unload(self) -> None:
         """Free the model. Must be safe to call twice or after a failed load."""
 
+    def bench_prefill(self, path: Path, placement: str, n_tokens: int) -> float | None:
+        """Optional engine-native prefill rate for an n_tokens prompt, measured after unload()."""
+        return None
+
 
 # ---- helpers shared by HTTP engines -------------------------------------------------
 

@@ -118,6 +118,10 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
         print(f"  {res.status}")
     finally:
         backend.unload()
+    if res.runs:
+        res.bench_prefill_tps = backend.bench_prefill(path, res.placement, res.runs[0].tokens_in)
+        if res.bench_prefill_tps:
+            print(f"  llama-bench prefill {res.bench_prefill_tps:,.1f} tok/s", flush=True)
     return res
 
 

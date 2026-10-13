@@ -47,7 +47,7 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   in `lms ls --json`. `lms load <path>` does not work.
 - `lms load` defaults to `--parallel 4`. We pass `--parallel 1`.
 - llama-server (build 11429+): `--fit` is on by default and `-ngl` defaults to auto, so partial GPU offload
-  is automatic. We only force `-ngl 0` for CPU placement.
+  is automatic. We force `-ngl 0` for CPU placement and `-ngl 999` when our fit check says it fits on the GPU.
 - mlx-lm 0.32 loads the Qwen3.5/3.6/3.8 4-bit repos from mlx-community fine (they include vision files, which are ignored).
 - Qwen3.6/3.8 are hybrid attention models: only 1 in 4 layers has a KV cache, so the KV estimate is small.
 - Gemma 4 mixes a few global layers (num_global_key_value_heads x global_head_dim 512) with sliding-window
@@ -66,16 +66,50 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
 - LM Studio launched from an agent shell quit by itself within seconds (no crash report). The user had to open it
   by hand. If `lms server status` says not running, ask the user to open LM Studio.
 - Gemma 4 E4B and 26B A4B ignore "exactly 30 placements" and keep emitting valid entries until the 4096 cap.
-  That's the model, not looping; Qwen3.8 returns exactly 30.
+  That's the model, not looping; Qwen3.8 usually returns exactly 30 (once on N1X/CUDA it also ran to the cap).
 - Every run's generated text goes to `results/outputs/<run>/`. Check it when tokens_out hits the
   --max-tokens cap (looping, or thinking despite reasoning off).
 
 ## Status
 - 2026-10-09: built and verified on macOS (M5 Max, 128 GB) with all 4 engines. The smoke model passed on all of them.
   No clean Mac numbers recorded yet (see below).
-- **Not yet run on Windows or Linux.** Expect to fix: GPU detection (`hardware.py`: nvidia-smi,
-  /sys/class/drm for AMD, Windows registry qwMemorySize), llama-server discovery, and LM Studio paths on Windows
-  (`%USERPROFILE%\.lmstudio`). If detection is wrong, the user can pass `--vram-gb` / `--ram-gb`; fix the code too.
+- **Not yet run on Linux.** Expect to fix: GPU detection (`hardware.py`: nvidia-smi,
+  /sys/class/drm for AMD), llama-server discovery. If detection is wrong, the user can pass `--vram-gb` / `--ram-gb`; fix the code too.
+- 2026-10-10: first Windows run, on an ARM64 laptop with NVIDIA RTX Spark N1X (64 GB unified, 20-core CPU):
+  - `nvidia-smi` also lists "NVIDIA NPU, [N/A]"; `_nvidia()` skips rows without a number. The GPU reports ~all of RAM,
+    so `detect()` treats a single GPU with >=90% of RAM as unified (budget 75% of RAM, like Apple).
+  - `winget install astral-sh.uv ggml.llamacpp` works; winget's llama.cpp is the **Vulkan arm64** build (sees the GPU).
+    A fresh shell is needed for PATH. uv first picked an x86_64 Python (emulated); use
+    `uv venv --python cpython-3.14-windows-aarch64-none`.
+  - Vulkan compiles shaders on first use: the very first smoke run had TTFT 12.2 s vs 1.8 s once warm (cache persists).
+    If a model's log shows the first 2048-token chunk much slower than the rest, rerun it.
+  - **LM Studio has no GPU runtime on Windows ARM64.** The default `x86_64-nvidia-cuda` runtime exits with
+    0xC0000135 (DLL not found); `x86_64-vulkan` fails on device selection; `llama.cpp-win-arm64` works but CPU-only
+    (smoke prefill 347 tok/s vs 11K on llama.cpp). Left selected: `llama.cpp-win-arm64@2.55.0`.
+  - Luan's call: on this machine benchmark **llama.cpp (GPU) only** (`--all -e llamacpp`); no CPU-only LM Studio runs.
+  - **llama-server prefill stalls here**: the GPU shows 96% busy at ~25 W instead of ~75 W for most of the prompt, so
+    Qwen3.8 27B TTFT varied 45–210 s across runs. `llama-bench` on the same model sustains 660–740 tok/s
+    (pp2048 up to depth 16K). Decode numbers are stable; treat prefill/TTFT from this machine as unreliable.
+    llama.cpp rows now also get a **llama-bench prefill** column (`bench_prefill()` in llamacpp.py, same GGUF,
+    `-p <tokens in>`, run after the server stops). On 2026-10-13 that column stalled too (Qwen3.8 27B: 69 tok/s for one
+    20K prompt, while pp2048 short bursts gave 738 the same hour). So it is not llama-server: any *long continuous*
+    prefill drops into the ~25 W mode, short bursts don't. Likely GPU power management in the driver/firmware
+    (fix pending from the OEM). Until then this machine has no reliable full-prompt prefill number; decode is fine.
+  - **Fix (2026-10-14): use the CUDA build, not winget's Vulkan one.** GitHub releases ship
+    `llama-bXXXX-bin-win-cuda-13.4-arm64.zip` + `cudart-llama-bin-win-cuda-13.4-arm64.zip` (extract both into one dir;
+    here `%LOCALAPPDATA%\llama.cpp-cuda\b11592`) and run with `--llama-server <dir>\llama-server.exe`.
+    Qwen3.8 27B llama-bench: pp20000 809 tok/s steady (Vulkan 64), tg 16.2 (Vulkan 12.0). The prefill stall and
+    the `nvogla64.dll` crashes are Vulkan-path problems; the notes above apply to Vulkan only.
+    Clean N1X result: `results/2026-10-14_025519_LAPTOP-LFUSQL4B` (all 6 models, server and llama-bench prefill agree).
+    In that run Qwen3.8 27B wrote 73 placements to the 4096 cap (valid JSON, no looping) instead of 30.
+  - 2026-10-14: Tài reported partial CPU offload on N1X and 3–7.5x prefill / +20–60% decode after `-ngl 999`.
+    Not reproduced here: `llama-fit-params` gives `-ngl -1` (all layers) for Qwen3.8 27B @32K, and with
+    `-ngl 999` decode stayed 12.0 tok/s and prefill still stalled (server 210, llama-bench 64 tok/s). llamacpp.py now
+    passes `-ngl 999` for full-GPU placements anyway (explicit, harmless). If Tài's numbers are real, the difference is
+    elsewhere: llama.cpp backend/build (CUDA vs our winget Vulkan b11515) or NVIDIA driver (ours 32.0.16.1662).
+  - **NVIDIA driver crash**: llama-server sometimes dies with 0xc0000005 in `nvogla64.dll` (ASUS ARM64 driver
+    32.0.16.1662), e.g. Qwen3.6 35B A3B mid-generation, or on a request that reuses the slot's prompt cache.
+    Default flags (4 slots) crashed on the first request. `-np 1 --cache-ram 0` survived 20+ requests.
 - 2026-10-09: added Gemma 4 E2B / E4B / 12B QAT / 26B A4B QAT (not benchmarked yet).
 - **Open issue: LM Studio + MLX Qwen3.8 ignores reasoning off.** LM Studio answers `"reasoning": "off"` with
   "does not expose reasoning configuration". lmstudio.py then retries without the field and the model thinks,
