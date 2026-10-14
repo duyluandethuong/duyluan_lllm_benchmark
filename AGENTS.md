@@ -156,8 +156,19 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   port 8080, MLX models kept resident, ~100 GB). Fine to leave up while idle; the benchmark doesn't use it.
   **But it gets outside traffic** (clients come in over [::1], likely a tunnel): on 2026-10-14 a request stream to
   qwen3.8:8 pinned the GPU at 100% and a Gemma E4B `--users` run collapsed at 20 users (aggregate 299 -> 76 tok/s).
-  `warn_if_busy` misses it (CPU stays idle; it's GPU load). Before a run check
-  `ioreg -r -d 1 -c IOAccelerator | grep -o '"Device Utilization %"=[0-9]*'` is near 0 and
-  `lsof -nP -iTCP:8080 -sTCP:ESTABLISHED` is empty.
+  `warn_if_busy` misses it (CPU stays idle; it's GPU load). Since 2026-10-15 every run records **Other GPU %**
+  (`gpu_time_by_pid()` in hardware.py: IOKit AppUsage accumulatedGPUTime per pid, before/after each round, minus
+  bench.py's own process tree and WindowServer) and prints a warning above 5%. Verified: a competing MLX matmul
+  loop reads 48-92%, idle reads 0.0. Before a long run also check `lsof -nP -iTCP:8080 -sTCP:ESTABLISHED` is empty.
   The mlx-lm first-request penalty is bigger on small models there: Gemma 4 E2B MLX prefill 9.3K, 19.6K, 37.1K tok/s
   over three runs.
+- 2026-10-14 Mac Studio `--users` (Gemma 4 E4B, 20K prompt, 4096 cap, GPU free of llama-swap): aggregate out tok/s
+  llama.cpp peaks at 10 users (~300) then drops (20: 190, 40: ~205, 50: 216; TTFT max 264 s at 50) because prompts are
+  prefilled one slot at a time. mlx-lm BatchGenerator keeps climbing (10: 287, 20: 336, 40: 343, 50: 429; TTFT max 72 s).
+  Agg. tok/s at high counts depends on output lengths (wall = slowest user), so compare per-user decode and TTFT too.
+- 2026-10-15 Mac Studio full `--users all` matrix (6 models x llama.cpp/MLX x 1..50 users = 108 cells, all OK, GPU
+  sampled every ~30 s and clean for every round). Local results: results/FINAL_concurrency_duyluanM5Ultra.{md,json},
+  built by results/console_logs_full_2026-10-14/consolidate.py (one bench.py per model+engine, timestamped log,
+  2 idle GPU minutes before each). bench.py now does this itself: `--all -e llamacpp,mlx --users all` gives one
+  report with a row for every cell ("Cannot run: <reason>" when unmeasured) and Other GPU % per run. Took ~8 h; Qwen3.8 27B llama.cpp alone ~1.5 h (TTFT max 1,123 s at 50 users).
+  MLX beats llama.cpp at 50 users on every model (1.3-2.8x aggregate); llama.cpp peaks at 10-40 users.

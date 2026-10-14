@@ -13,7 +13,10 @@ A-roll video. Every model and engine gets byte-identical input.
 
 Each run reports **tokens in, tokens out, TTFT, prefill tok/s, decode tok/s** (plus load time
 and estimated memory). The results are printed as a table and saved to `results/<date>_<host>.md` (and `.json`).
-If the machine cannot hold a model, its row says **Too large to run**.
+A cell that could not be measured says **Cannot run: <reason>** (too large for memory, engine not available here,
+no build of the model for that engine, or an error), so tables from different machines line up row for row.
+On macOS an **Other GPU %** column shows how much of the GPU other processes used during each run; above ~5% the
+numbers are low and the run should be repeated on an idle machine.
 The generated text for every run is saved in `results/outputs/<run>/`, so you can compare answer quality as well as speed.
 `results/` is gitignored; reports stay on the machine that produced them.
 
@@ -42,6 +45,7 @@ uv run bench.py                             # choose models interactively
 uv run bench.py -m qwen3.8-27b,qwen3.6-35b-a3b
 uv run bench.py --all -e llamacpp,lmstudio  # every model, chosen engines only
 uv run bench.py -m gemma4-e4b --users all   # 1, 2, 3, 4, 5, 10, 20, 40, 50 concurrent users
+uv run bench.py --all -e llamacpp,mlx --users all   # full matrix for comparing machines (hours)
 ```
 
 | Option | Default | |
@@ -57,7 +61,7 @@ uv run bench.py -m gemma4-e4b --users all   # 1, 2, 3, 4, 5, 10, 20, 40, 50 conc
 | `--models-dir` | `./models` | also env `LLMBENCH_MODELS_DIR` |
 | `--download-only` | | fetch files, don't benchmark |
 | `--vram-gb`, `--ram-gb` | detected | override detection (unknown or new hardware) |
-| `--force` | | skip the "Too large to run" check |
+| `--force` | | skip the "too large for memory" check |
 
 ## Model files
 
@@ -81,7 +85,7 @@ Before each LM Studio load the script runs `lms unload --all`, so LM Studio mode
 Add a block to `models.toml`. That's all. See the comments at the top of the file. Use
 `uv run bench.py --list` to check it parses.
 
-## How "Too large to run" is decided
+## How "too large for memory" is decided
 
 estimate = weight file size + KV cache at `--ctx` (from `arch` in models.toml) + 1.5 GB.
 
@@ -90,5 +94,6 @@ estimate = weight file size + KV cache at `--ctx` (from `arch` in models.toml) +
   (llama.cpp splits it automatically). Otherwise it doesn't fit.
 - **No GPU**: must fit in 85% of RAM → `CPU`.
 
-If an engine still fails to load with an out-of-memory error, the row also says "Too large to run".
+If an engine still fails to load with an out-of-memory error, the row also says "Cannot run: too large for memory".
+Higher user counts are then skipped and marked the same way.
 Engine logs are in `results/logs/`.

@@ -14,6 +14,8 @@ import glob
 import json
 import os
 import platform
+import plistlib
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -190,3 +192,30 @@ def detect(vram_override: float | None = None, ram_override: float | None = None
         return hw
     hw.gpu_budget_gb = max(0.0, hw.vram_gb - 0.5 * len(gpus))  # driver/context overhead per GPU
     return hw
+
+
+def gpu_time_by_pid() -> dict[int, int]:
+    """macOS: GPU time (ns) each process has used so far, from IOKit (no sudo). Empty elsewhere.
+    WindowServer is left out: it always uses a few percent drawing the screen."""
+    if platform.system() != "Darwin":
+        return {}
+    try:
+        out = subprocess.run(["ioreg", "-a", "-l", "-r", "-c", "IOAccelerator"], capture_output=True, timeout=10).stdout
+        tree = plistlib.loads(out)
+    except (OSError, subprocess.SubprocessError, plistlib.InvalidFileException, ValueError):
+        return {}
+    used: dict[int, int] = {}
+
+    def walk(node) -> None:
+        if isinstance(node, list):
+            for c in node:
+                walk(c)
+        elif isinstance(node, dict):
+            m = re.match(r"pid (\d+), (.*)", node.get("IOUserClientCreator", ""))
+            if m and m[2] != "WindowServer":
+                for u in node.get("AppUsage") or []:
+                    used[int(m[1])] = used.get(int(m[1]), 0) + u.get("accumulatedGPUTime", 0)
+            walk(node.get("IORegistryEntryChildren", []))
+
+    walk(tree)
+    return used

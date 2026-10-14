@@ -25,7 +25,7 @@ from llmbench import ROOT, fetch, prompt
 from llmbench.backends import ALIASES, TooLarge, all_backends
 from llmbench.backends.lmstudio import loaded_elsewhere
 from llmbench.config import Model, Settings, load_models
-from llmbench.hardware import detect
+from llmbench.hardware import detect, gpu_time_by_pid
 from llmbench.report import TOO_LARGE, SUMMARY_HEADER, Result, Round, md_table, summary_rows, write
 
 USER_LEVELS = [1, 2, 3, 4, 5, 10, 20, 40, 50]
@@ -123,9 +123,11 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
         print(f"  loading ({res.placement}, ~{res.est_gb or 0:.1f} GB)...", flush=True)
         res.load_s = backend.load(model, path, res.placement, s)
         for i in range(1, s.runs + 1):
+            gpu_before = gpu_time_by_pid()
             t0 = time.perf_counter()
             ms = backend.run_batch([prompt.for_run(text) for _ in range(s.users)], s)
-            rd = Round(time.perf_counter() - t0, ms)
+            wall = time.perf_counter() - t0
+            rd = Round(wall, ms, other_gpu_pct(gpu_before, wall))
             res.rounds.append(rd)
             if s.users == 1:
                 m = ms[0]
@@ -136,6 +138,9 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
                       f"TTFT avg {sum(m.ttft_s for m in ms) / len(ms):.2f}s max {rd.ttft_max:.2f}s | "
                       f"decode {sum(m.decode_tps for m in ms) / len(ms):.1f} tok/s per user | "
                       f"aggregate {rd.agg_tps:,.1f} tok/s | {rd.wall_s:.1f}s", flush=True)
+            if (rd.other_gpu_pct or 0) > 5:
+                print(f"  ! other processes used {rd.other_gpu_pct:.0f}% of the GPU during this run; "
+                      f"rerun it when the machine is idle", flush=True)
     except TooLarge as e:
         res.status = TOO_LARGE
         print(f"  {TOO_LARGE}: {e}")
@@ -143,7 +148,7 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
         backend.unload()
         raise
     except Exception as e:  # keep going with the next model/engine
-        res.status = f"Error: {str(e)[:120]}"
+        res.status = f"Cannot run: error: {str(e)[:120]}"
         print(f"  {res.status}")
     finally:
         backend.unload()
@@ -152,6 +157,17 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
         if res.bench_prefill_tps:
             print(f"  llama-bench prefill {res.bench_prefill_tps:,.1f} tok/s", flush=True)
     return res
+
+
+def other_gpu_pct(before: dict[int, int], wall_s: float) -> float | None:
+    """Share of the GPU used during a run by processes outside this benchmark (macOS only),
+    e.g. a model server answering someone else. It silently lowers every number."""
+    if not before:
+        return None
+    after = gpu_time_by_pid()
+    ours = {os.getpid(), *(p.pid for p in psutil.Process().children(recursive=True))}
+    other_ns = sum(ns - before.get(pid, 0) for pid, ns in after.items() if pid not in ours)
+    return 100 * other_ns / 1e9 / wall_s
 
 
 LOCK = ROOT / "results" / ".bench.lock"
@@ -224,7 +240,8 @@ def main() -> None:
         return
 
     selected = pick_models(models, args)
-    engines = [b for b in pick_engines(args, backends) if status[b.id][0]]
+    requested = pick_engines(args, backends)
+    engines = [b for b in requested if status[b.id][0]]
     if not engines:
         sys.exit("No usable engine on this machine; see the [--] lines above.")
     if busy := [x for x in loaded_elsewhere(args.lms) if x]:
@@ -238,14 +255,23 @@ def main() -> None:
         warn_if_busy()
     try:
         for model in selected:
-            for b in engines:
-                if b.fmt not in model.artifacts:
+            # Engines named with -e that can't run here still get rows, so tables from different machines line up.
+            for b in requested if args.engine and not args.download_only else engines:
+                levels = [1] if args.download_only else args.users
+                art = model.artifacts.get(b.fmt)
+                why = (f"Cannot run: {b.label} not available here ({status[b.id][1]})" if not status[b.id][0]
+                       else f"Cannot run: no {b.fmt} build of this model in models.toml" if art is None else None)
+                if why:
+                    results += [Result(model.name, b.label, art.quant if art else "—", why, users=n) for n in levels]
+                    print(f"\n=== {model.name} · {b.label}: {why}")
                     continue
-                for n in [1] if args.download_only else args.users:
+                for k, n in enumerate(levels):
                     print(f"\n=== {model.name} · {b.label}" + (f" · {n} user(s)" if args.users != [1] else ""))
                     results.append(bench_one(model, b, hw, replace(s, users=n), args, text))
-                    if results[-1].status == TOO_LARGE:
-                        break  # more users only need more memory
+                    if results[-1].status == TOO_LARGE:  # more users only need more memory
+                        results += [Result(model.name, b.label, art.quant, f"{TOO_LARGE} (already at {n} users)",
+                                           users=m) for m in levels[k + 1:]]
+                        break
     except KeyboardInterrupt:
         print("\nInterrupted; writing partial report.")
     finally:

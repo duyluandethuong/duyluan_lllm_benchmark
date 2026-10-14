@@ -15,7 +15,7 @@ from .config import Settings
 from .hardware import Hardware
 
 RESULTS_DIR = ROOT / "results"
-TOO_LARGE = "Too large to run"
+TOO_LARGE = "Cannot run: too large for memory"
 
 
 @dataclass
@@ -23,6 +23,7 @@ class Round:
     """One timed run: `users` requests sent at the same moment."""
     wall_s: float  # first request sent -> last request finished
     requests: list[RunMetrics]
+    other_gpu_pct: float | None = None  # GPU share used by other processes meanwhile (macOS only)
 
     @property
     def agg_tps(self) -> float:  # output tokens of all users per second of wall time
@@ -38,7 +39,7 @@ class Result:
     model: str
     engine: str
     quant: str
-    status: str  # "OK", TOO_LARGE, "Skipped: ...", "Error: ..."
+    status: str  # "OK", "Downloaded" or "Cannot run: <reason>"
     users: int = 1
     placement: str = "—"
     est_gb: float | None = None
@@ -54,6 +55,11 @@ class Result:
         vals = [getattr(r, attr) for r in self.runs if getattr(r, attr) is not None]
         return mean(vals) if vals else None
 
+    @property
+    def other_gpu_max(self) -> float | None:
+        vals = [rd.other_gpu_pct for rd in self.rounds if rd.other_gpu_pct is not None]
+        return max(vals) if vals else None
+
     def round_avg(self, attr: str) -> float | None:
         return mean(getattr(rd, attr) for rd in self.rounds) if self.rounds else None
 
@@ -68,7 +74,7 @@ def _i(v: float | None) -> str:
 
 SUMMARY_HEADER = ["Model", "Engine", "Users", "Quant", "Status", "Placement", "Est. mem (GB)", "Load (s)",
                   "Tokens in", "Tokens out", "TTFT (s)", "TTFT max (s)", "Prefill tok/s", "llama-bench prefill tok/s",
-                  "Decode tok/s", "Agg. out tok/s", "Total (s)"]
+                  "Decode tok/s", "Agg. out tok/s", "Total (s)", "Other GPU %"]
 
 
 def summary_rows(results: list[Result]) -> list[list[str]]:
@@ -78,7 +84,7 @@ def summary_rows(results: list[Result]) -> list[list[str]]:
             r.model, r.engine, str(r.users), r.quant, r.status, r.placement, _f(r.est_gb), _f(r.load_s),
             _i(r.avg("tokens_in")), _i(r.avg("tokens_out")), _f(r.avg("ttft_s"), 2), _f(r.round_avg("ttft_max"), 2),
             _f(r.avg("prefill_tps")), _f(r.bench_prefill_tps), _f(r.avg("decode_tps")), _f(r.round_avg("agg_tps")),
-            _f(r.round_avg("wall_s")),
+            _f(r.round_avg("wall_s")), _f(r.other_gpu_max),
         ])
     return rows
 
@@ -92,13 +98,13 @@ def md_table(header: list[str], rows: list[list[str]]) -> str:
 def per_run_table(results: list[Result]) -> str:
     """One row per round; with several users, token counts are summed and rates averaged per user."""
     header = ["Model", "Engine", "Users", "Run", "Tokens in", "Tokens out", "TTFT (s)", "TTFT max (s)",
-              "Prefill tok/s", "Decode tok/s", "Agg. out tok/s", "Total (s)"]
+              "Prefill tok/s", "Decode tok/s", "Agg. out tok/s", "Total (s)", "Other GPU %"]
     def avg(rd, attr):
         vals = [getattr(m, attr) for m in rd.requests if getattr(m, attr) is not None]
         return mean(vals) if vals else None
     rows = [[r.model, r.engine, str(r.users), str(i), _i(sum(m.tokens_in for m in rd.requests)),
              _i(sum(m.tokens_out for m in rd.requests)), _f(avg(rd, "ttft_s"), 2), _f(rd.ttft_max, 2),
-             _f(avg(rd, "prefill_tps")), _f(avg(rd, "decode_tps")), _f(rd.agg_tps), _f(rd.wall_s)]
+             _f(avg(rd, "prefill_tps")), _f(avg(rd, "decode_tps")), _f(rd.agg_tps), _f(rd.wall_s), _f(rd.other_gpu_pct)]
             for r in results for i, rd in enumerate(r.rounds, 1)]
     return md_table(header, rows)
 
@@ -141,6 +147,10 @@ def write(results: list[Result], hw: Hardware, s: Settings, engines: dict[str, s
 - **TTFT max**: the slowest user's TTFT (the last one to get a first token).
 - **Agg. out tok/s**: output tokens of all users ÷ wall time of the run (first request sent to last one finished).
 - **Total (s)**: wall time of the run.
+- **Other GPU %** (macOS only): share of the GPU that processes outside this benchmark used during the run (summary:
+  the worst run). Above ~5% the numbers are low because something else shared the GPU; rerun when it is idle.
+- **Cannot run: ...**: the cell was not measured, with the reason (engine not available here, no build of the model
+  for that engine, too large for memory, or an error). Kept so tables from different machines line up.
 - **Est. mem**: weights + KV cache at the configured context + 1.5 GB overhead; used for the "{TOO_LARGE}" check.
 """
     out_dir = RESULTS_DIR / "outputs" / stem
@@ -157,7 +167,7 @@ def write(results: list[Result], hw: Hardware, s: Settings, engines: dict[str, s
         "host": host, "time": now.isoformat(timespec="seconds"), "hardware": asdict(hw),
         "settings": asdict(s), "engines": engines,
         "results": [{**asdict(r), "rounds": [
-            {"wall_s": rd.wall_s, "requests": [{k: v for k, v in asdict(m).items() if k != "text"} for m in rd.requests]}
+            {"wall_s": rd.wall_s, "other_gpu_pct": rd.other_gpu_pct, "requests": [{k: v for k, v in asdict(m).items() if k != "text"} for m in rd.requests]}
             for rd in r.rounds]} for r in results],
     }, indent=2), encoding="utf-8")
     return str(RESULTS_DIR / f"{stem}.md")
