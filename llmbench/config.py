@@ -25,9 +25,9 @@ class Arch:
 
 @dataclass(frozen=True)
 class Artifact:
-    """One downloadable form of a model (a GGUF file set, or an MLX repo snapshot)."""
+    """One downloadable form of a model (a GGUF file set, or an MLX / vLLM repo snapshot)."""
 
-    fmt: str  # "gguf" | "mlx"
+    fmt: str  # "gguf" | "mlx" | "vllm"
     repo: str
     quant: str
     files: tuple[str, ...] = ()  # gguf: explicit files; mlx: empty = whole repo
@@ -41,6 +41,7 @@ class Model:
     arch: Arch | None
     artifacts: dict[str, Artifact]  # keyed by fmt
     llamacpp_args: tuple[str, ...] = ()
+    vllm_args: tuple[str, ...] = ()
 
 
 @dataclass
@@ -60,7 +61,7 @@ def load_models(path: Path = REGISTRY) -> list[Model]:
     models = []
     for m in data.get("model", []):
         artifacts = {}
-        for fmt in ("gguf", "mlx"):
+        for fmt in ("gguf", "mlx", "vllm"):
             if fmt in m:
                 a = m[fmt]
                 artifacts[fmt] = Artifact(fmt, a["repo"], a.get("quant", "?"), tuple(a.get("files", ())))
@@ -68,5 +69,6 @@ def load_models(path: Path = REGISTRY) -> list[Model]:
         models.append(Model(
             id=m["id"], name=m.get("name", m["id"]), smoke=m.get("smoke", False), arch=arch,
             artifacts=artifacts, llamacpp_args=tuple(m.get("llamacpp_args", ())),
+            vllm_args=tuple(m.get("vllm_args", ())),
         ))
     return models

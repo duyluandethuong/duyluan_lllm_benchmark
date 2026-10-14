@@ -10,6 +10,7 @@ A-roll video. Every model and engine gets byte-identical input.
 | MLX (`mlx-lm`) | MLX | macOS, Apple Silicon |
 | LM Studio (`lms`) | GGUF | macOS, Windows, Linux |
 | LM Studio (`lms`) | MLX | macOS, Apple Silicon |
+| vLLM (Docker) | HF safetensors (NVFP4 / W4A16) | Linux + NVIDIA |
 
 Each run reports **tokens in, tokens out, TTFT, prefill tok/s, decode tok/s** (plus load time
 and estimated memory). The results are printed as a table and saved to `results/<date>_<host>.md` (and `.json`).
@@ -21,7 +22,8 @@ The generated text for every run is saved in `results/outputs/<run>/`, so you ca
 `results/` is gitignored; reports stay on the machine that produced them.
 
 Models so far: Qwen3.8 27B, Qwen3.6 35B A3B, Gemma 4 E2B, Gemma 4 E4B, Gemma 4 12B QAT, Gemma 4 26B A4B QAT
-(4-bit everywhere; QAT models use Google's Q4_0 GGUF).
+(4-bit everywhere; QAT models use Google's Q4_0 GGUF; vLLM uses NVIDIA's NVFP4 builds, or Google's QAT W4A16 for
+Gemma E2B/E4B/12B, since it can't run GGUF well).
 
 ## Setup
 
@@ -34,6 +36,8 @@ Models so far: Qwen3.8 27B, Qwen3.6 35B A3B, Gemma 4 E2B, Gemma 4 E4B, Gemma 4 1
        <https://github.com/ggml-org/llama.cpp/releases>. Put `llama-server` on PATH or pass `--llama-server`.
    - **LM Studio**: install it and open it once, so the `lms` CLI exists.
    - **MLX**: installed by `uv sync` on Apple Silicon.
+   - **vLLM** (Linux + NVIDIA): Docker with the NVIDIA container toolkit, then `docker pull vllm/vllm-openai:v0.30.0`
+     (another tag: env `LLMBENCH_VLLM_IMAGE`). Each load starts a container on every GPU (tensor parallel).
 3. `uv sync`
 
 ## Run
@@ -52,7 +56,7 @@ uv run bench.py --all -e llamacpp,mlx --users all   # full matrix for comparing 
 |---|---|---|
 | `-m/--model` | interactive | ids from `models.toml`, comma-separated |
 | `--all` | | every model except `smoke` |
-| `-e/--engine` | all available | `llamacpp`, `mlx`, `lmstudio` (both formats), `lmstudio-gguf`, `lmstudio-mlx` |
+| `-e/--engine` | all available | `llamacpp`, `mlx`, `lmstudio` (both formats), `lmstudio-gguf`, `lmstudio-mlx`, `vllm` |
 | `--runs` | 1 | timed runs per model+engine, averaged |
 | `--users` | 1 | concurrent users, e.g. `1,4,10`, or `all` = 1,2,3,4,5,10,20,40,50. Each count reloads the model with one slot per user and sends that many requests at once |
 | `--ctx` | 32768 | context size per user |

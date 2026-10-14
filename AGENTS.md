@@ -23,6 +23,7 @@ llmbench/backends/base.py    Backend interface (available/load/run/unload), SSE 
 llmbench/backends/llamacpp.py   llama-server subprocess, /v1/chat/completions stream
 llmbench/backends/mlx_backend.py + mlx_worker.py   mlx-lm in a child process (memory freed on exit)
 llmbench/backends/lmstudio.py   lms CLI + /api/v1/chat stream
+llmbench/backends/vllm_backend.py   vllm/vllm-openai container per load (docker run/rm), /v1/chat/completions stream
 ```
 New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__.py`.
 
@@ -49,6 +50,14 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   Fit check counts one ctx-sized KV cache per user; once a count is too large, higher counts are skipped.
   Smoke (Qwen3.5 0.8B, M5 Max) aggregate out tok/s with 128-token outputs is prefill-bound: 1 vs 4 users ~55 -> 62
   (llama.cpp), 85 -> 101 (MLX). Use the default --max-tokens for real decode scaling.
+  A GPU+CPU placement with 2+ users counts as too large: on 2x RTX PRO 4500 Qwen3.8 27B at 40 users
+  (est. 97 GB vs 63 GB VRAM) spilled to RAM and ran at ~0.15 tok/s per user for 4 hours before it was stopped.
+- vLLM (2026-10-15): one container per (model, user count): `--max-model-len ctx --max-num-seqs users`,
+  `--no-enable-prefix-caching`, TP = all GPUs, `--language-model-only`, KV cache dtype auto (bf16, like llama.cpp's f16),
+  `chat_template_kwargs.enable_thinking` = --reasoning. vLLM shares one paged KV pool across requests, so the fit
+  check counts one context (`shared_kv`); users that don't fit wait in vLLM's queue (shows as TTFT).
+  vLLM gives no per-request timings: prefill = tokens in / TTFT, decode = (tokens out - 1) / (total - TTFT), client-side.
+  Startup is ~90-100 s per load (torch.compile + CUDA graphs; cache in ~/.cache/llmbench-vllm).
 
 ## Gotchas found so far
 - **LM Studio 0.4.x does not index symlinked models**, so they don't show up in `lms ls`. Hard links work.
@@ -86,8 +95,14 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
 ## Status
 - 2026-10-09: built and verified on macOS (M5 Max, 128 GB) with all 4 engines. The smoke model passed on all of them.
   No clean Mac numbers recorded yet (see below).
-- **Not yet run on Linux.** Expect to fix: GPU detection (`hardware.py`: nvidia-smi,
-  /sys/class/drm for AMD), llama-server discovery. If detection is wrong, the user can pass `--vram-gb` / `--ram-gb`; fix the code too.
+- 2026-10-13/15: first Linux machine, `duyluanai` (Ubuntu 26.04, Core Ultra 7 270K Plus, 123 GB, 2x RTX PRO 4500
+  Blackwell 32 GB, PCIe 5.0 x8/x8, `iommu=pt`). Detection worked unchanged. llama.cpp: GitHub release b11583
+  `ubuntu-cuda-13.4-x64` + the matching `cudart-...` tarball extracted into one dir (libggml-cuda has RUNPATH $ORIGIN),
+  `~/.local/opt/llama-b11583/llama-b11583/llama-server`. The box normally runs a production vLLM container
+  (~/duyluanai_llm_setup, holds ~30 GB per GPU): `docker compose stop vllm` before a run, `start` after.
+  llama.cpp splits layers over both GPUs. Gemma 4 E2B is anomalous there: aggregate stays ~75 tok/s from 1 to 50 users
+  (E4B scales to ~480); not investigated. Gemma 26B A4B at 50 users: llama.cpp OOM on GPU1 (KV) though est. 56 GB fits.
+  Full llama.cpp matrix: results/2026-10-14_224211_duyluanai.
 - 2026-10-10: first Windows run, on an ARM64 laptop with NVIDIA RTX Spark N1X (64 GB unified, 20-core CPU):
   - `nvidia-smi` also lists "NVIDIA NPU, [N/A]"; `_nvidia()` skips rows without a number. The GPU reports ~all of RAM,
     so `detect()` treats a single GPU with >=90% of RAM as unified (budget 75% of RAM, like Apple).

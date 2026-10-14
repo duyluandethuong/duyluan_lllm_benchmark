@@ -1,6 +1,7 @@
 # Model registry. One [[model]] block per model; each block can offer one or more
 # formats. A format is only benchmarked if the machine has a backend for it:
 #   gguf -> llama.cpp (llama-server), every OS
+#   vllm -> vLLM (Docker), Linux + NVIDIA
 #   mlx  -> mlx-lm, macOS on Apple Silicon only
 #
 # Files live in ./models/<repo>/. Before downloading, the script reuses the same repo
@@ -21,6 +22,9 @@
 #                Omit the table if unknown; a 15%-of-weights heuristic is used instead.
 #   [model.gguf] repo + files (list; give every shard of a split model, first shard first)
 #   [model.mlx]  repo (the whole repo snapshot is the model)
+#   [model.vllm] repo (whole HF snapshot, run by vLLM in Docker; Linux + NVIDIA only).
+#                4-bit builds: NVIDIA NVFP4 where published, else Google's QAT W4A16.
+#   vllm_args   extra `vllm serve` flags
 #   quant       label shown in the report
 
 [[model]]
@@ -29,6 +33,8 @@ name = "Qwen3.8 27B"
 arch = { attn_layers = 16, kv_heads = 4, head_dim = 256 }
 gguf = { repo = "unsloth/Qwen3.8-27B-GGUF", files = ["Qwen3.8-27B-UD-Q4_K_M.gguf"], quant = "Q4_K_M" }
 mlx = { repo = "mlx-community/Qwen3.8-27B-4bit", quant = "4bit" }
+vllm = { repo = "nvidia/Qwen3.8-27B-NVFP4", quant = "NVFP4" }
+vllm_args = ["--language-model-only"]
 
 [[model]]
 id = "qwen3.6-35b-a3b"
@@ -36,6 +42,8 @@ name = "Qwen3.6 35B A3B"
 arch = { attn_layers = 10, kv_heads = 2, head_dim = 256 }
 gguf = { repo = "unsloth/Qwen3.6-35B-A3B-GGUF", files = ["Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"], quant = "Q4_K_M" }
 mlx = { repo = "mlx-community/Qwen3.6-35B-A3B-4bit", quant = "4bit" }
+vllm = { repo = "nvidia/Qwen3.6-35B-A3B-NVFP4", quant = "NVFP4" }
+vllm_args = ["--language-model-only"]
 
 # Tiny model to check the pipeline end to end on a new machine (~0.5 GB).
 [[model]]
@@ -45,6 +53,8 @@ smoke = true
 arch = { attn_layers = 6, kv_heads = 2, head_dim = 256 }
 gguf = { repo = "unsloth/Qwen3.5-0.8B-GGUF", files = ["Qwen3.5-0.8B-Q4_K_M.gguf"], quant = "Q4_K_M" }
 mlx = { repo = "mlx-community/Qwen3.5-0.8B-4bit", quant = "4bit" }
+vllm = { repo = "Qwen/Qwen3.5-0.8B", quant = "BF16" }
+vllm_args = ["--language-model-only"]
 
 # Gemma 4: E2B/E4B are regular Q4_K_M; 12B and 26B A4B are Google's QAT checkpoints
 # (trained for Q4_0, so the GGUF is Google's own Q4_0 file).
@@ -54,6 +64,8 @@ name = "Gemma 4 E2B"
 arch = { attn_layers = 7, kv_heads = 1, head_dim = 512, sliding_layers = 28, sliding_window = 512, sliding_kv_heads = 1, sliding_head_dim = 256 }
 gguf = { repo = "unsloth/gemma-4-E2B-it-GGUF", files = ["gemma-4-E2B-it-Q4_K_M.gguf"], quant = "Q4_K_M" }
 mlx = { repo = "mlx-community/gemma-4-e2b-it-4bit", quant = "4bit" }
+vllm = { repo = "google/gemma-4-E2B-it-qat-w4a16-ct", quant = "W4A16 QAT" }
+vllm_args = ["--language-model-only"]
 
 [[model]]
 id = "gemma4-e4b"
@@ -61,6 +73,8 @@ name = "Gemma 4 E4B"
 arch = { attn_layers = 7, kv_heads = 2, head_dim = 512, sliding_layers = 35, sliding_window = 512, sliding_kv_heads = 2, sliding_head_dim = 256 }
 gguf = { repo = "unsloth/gemma-4-E4B-it-GGUF", files = ["gemma-4-E4B-it-Q4_K_M.gguf"], quant = "Q4_K_M" }
 mlx = { repo = "mlx-community/gemma-4-e4b-it-4bit", quant = "4bit" }
+vllm = { repo = "google/gemma-4-E4B-it-qat-w4a16-ct", quant = "W4A16 QAT" }
+vllm_args = ["--language-model-only"]
 
 [[model]]
 id = "gemma4-12b-qat"
@@ -68,6 +82,8 @@ name = "Gemma 4 12B QAT"
 arch = { attn_layers = 8, kv_heads = 1, head_dim = 512, sliding_layers = 40, sliding_window = 1024, sliding_kv_heads = 8, sliding_head_dim = 256 }
 gguf = { repo = "google/gemma-4-12B-it-qat-q4_0-gguf", files = ["gemma-4-12b-it-qat-q4_0.gguf"], quant = "Q4_0 QAT" }
 mlx = { repo = "mlx-community/gemma-4-12B-it-qat-4bit", quant = "4bit QAT" }
+vllm = { repo = "google/gemma-4-12B-it-qat-w4a16-ct", quant = "W4A16 QAT" }
+vllm_args = ["--language-model-only"]
 
 [[model]]
 id = "gemma4-26b-a4b-qat"
@@ -75,3 +91,5 @@ name = "Gemma 4 26B A4B QAT"
 arch = { attn_layers = 5, kv_heads = 2, head_dim = 512, sliding_layers = 25, sliding_window = 1024, sliding_kv_heads = 8, sliding_head_dim = 256 }
 gguf = { repo = "google/gemma-4-26B-A4B-it-qat-q4_0-gguf", files = ["gemma-4-26B_q4_0-it.gguf"], quant = "Q4_0 QAT" }
 mlx = { repo = "mlx-community/gemma-4-26B-A4B-it-qat-4bit", quant = "4bit QAT" }
+vllm = { repo = "nvidia/Gemma-4-26B-A4B-NVFP4", quant = "NVFP4" }
+vllm_args = ["--language-model-only"]

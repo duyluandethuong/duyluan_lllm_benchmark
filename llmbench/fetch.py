@@ -61,7 +61,7 @@ def weights_gb(art: Artifact, models_dir: Path) -> float | None:
     d = repo_dir(models_dir, art)
     total = 0
     for f, size in files.items():
-        if art.fmt == "mlx" and not f.endswith(".safetensors"):
+        if art.fmt != "gguf" and not f.endswith(".safetensors"):
             continue
         if size is None:
             p = d / f
@@ -134,7 +134,7 @@ def _place(src: Path, dst: Path) -> str:
 
 def ensure(art: Artifact, models_dir: Path) -> Path:
     """Reuse or download what is missing; return the path the engine should load
-    (first GGUF shard, or the MLX directory)."""
+    (first GGUF shard, or the MLX / vLLM repo directory)."""
     from huggingface_hub import hf_hub_download
 
     d = repo_dir(models_dir, art)

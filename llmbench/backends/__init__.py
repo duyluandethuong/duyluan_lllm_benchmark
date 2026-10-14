@@ -6,6 +6,7 @@ from .base import Backend, RunMetrics, TooLarge
 from .llamacpp import LlamaCpp
 from .lmstudio import LmStudio
 from .mlx_backend import Mlx
+from .vllm_backend import Vllm
 
 
 def all_backends(llama_server: str | None = None, lms: str | None = None) -> list[Backend]:
@@ -14,6 +15,7 @@ def all_backends(llama_server: str | None = None, lms: str | None = None) -> lis
         Mlx(),
         LmStudio("gguf", lms),
         LmStudio("mlx", lms),
+        Vllm(),
     ]
 
 

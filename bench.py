@@ -105,8 +105,13 @@ def pick_engines(args, backends):
 def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result:
     art = model.artifacts[backend.fmt]
     res = Result(model.name, backend.label, art.quant, "OK", users=s.users)
-    res.est_gb = fetch.estimate_gb(art, model.arch, s.ctx_size, args.models_dir, s.users)
+    kv_users = 1 if getattr(backend, "shared_kv", False) else s.users  # vLLM: one KV pool shared by all users
+    res.est_gb = fetch.estimate_gb(art, model.arch, s.ctx_size, args.models_dir, kv_users)
     placement = hw.placement(res.est_gb) if res.est_gb is not None else "?"
+    # A GPU+CPU split works for one user but not for many: Qwen3.8 27B with 40 users ran at
+    # ~0.15 tok/s per user on 2x RTX PRO 4500 and would have taken many hours.
+    if placement == "GPU+CPU" and s.users > 1:
+        placement = None
     if res.est_gb is not None and placement is None and not args.force:
         res.status = TOO_LARGE
         print(f"  {TOO_LARGE}: needs ~{res.est_gb:.1f} GB")
