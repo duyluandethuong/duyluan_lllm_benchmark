@@ -48,6 +48,7 @@ class Settings:
     ctx_size: int = 32768
     max_tokens: int = 4096
     runs: int = 1
+    users: int = 1  # concurrent requests per run (one server slot each)
     reasoning: bool = False
     temperature: float = 0.0
     seed: int = 42

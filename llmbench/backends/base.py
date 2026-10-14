@@ -4,10 +4,12 @@ methods, and register it in backends/__init__.py."""
 from __future__ import annotations
 
 import json
+import threading
 import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -54,6 +56,20 @@ class Backend(ABC):
     @abstractmethod
     def run(self, prompt: str, s: Settings) -> RunMetrics:
         """One timed generation of `prompt` (already made unique per run)."""
+
+    def run_batch(self, prompts: list[str], s: Settings) -> list[RunMetrics]:
+        """All prompts at the same moment, as concurrent users (s.users slots were loaded).
+        Default: one thread per request against an HTTP server."""
+        if len(prompts) == 1:
+            return [self.run(prompts[0], s)]
+        start = threading.Barrier(len(prompts))
+
+        def one(p: str) -> RunMetrics:
+            start.wait()
+            return self.run(p, s)
+
+        with ThreadPoolExecutor(len(prompts)) as pool:
+            return list(pool.map(one, prompts))
 
     def unload(self) -> None:
         """Free the model. Must be safe to call twice or after a failed load."""

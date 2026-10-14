@@ -60,13 +60,25 @@ class Mlx(Backend):
         )
         return self._recv()["loaded"]
 
-    def run(self, prompt: str, s: Settings) -> RunMetrics:
-        req = {"prompt": prompt, "max_tokens": s.max_tokens, "temperature": s.temperature, "seed": s.seed}
+    def _ask(self, req: dict, s: Settings) -> dict:
+        req |= {"max_tokens": s.max_tokens, "temperature": s.temperature, "seed": s.seed}
         self.proc.stdin.write(json.dumps(req) + "\n")
         self.proc.stdin.flush()
-        m = self._recv()
+        return self._recv()
+
+    @staticmethod
+    def _metrics(m: dict) -> RunMetrics:
         return RunMetrics(m["tokens_in"], m["tokens_out"], m["ttft_s"], m["prefill_tps"], m["decode_tps"],
                           m["total_s"], m["text"])
+
+    def run(self, prompt: str, s: Settings) -> RunMetrics:
+        return self._metrics(self._ask({"prompt": prompt}, s))
+
+    def run_batch(self, prompts: list[str], s: Settings) -> list[RunMetrics]:
+        # mlx-lm has no server slots: the worker batches all prompts in one BatchGenerator.
+        if len(prompts) == 1:
+            return [self.run(prompts[0], s)]
+        return [self._metrics(m) for m in self._ask({"prompts": prompts}, s)["results"]]
 
     def unload(self) -> None:
         if self.proc:

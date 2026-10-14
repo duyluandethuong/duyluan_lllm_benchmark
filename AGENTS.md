@@ -37,6 +37,14 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
 - The prompt is 20,004 tokens with the Qwen3.5/3.6/3.8 tokenizer. Characters/4 overestimated it badly
   (the first version came out at 34K) because timestamps and IDs tokenize densely. Measure with a real tokenizer.
 
+- `--users N` (2026-10-14): N copies of the prompt (each with its own Request id) sent at the same moment to one
+  loaded model, reloaded per N. llama.cpp: `-np N -c ctx*N`. LM Studio: `--parallel N -c ctx*N` (assumes its unified
+  KV cache shares -c across slots; not verified). mlx-lm has no slots: mlx_worker.py runs all prompts in one
+  `BatchGenerator` (prefill batches of 8, so users 9+ wait; MLX per-user prefill = tokens in / TTFT).
+  Fit check counts one ctx-sized KV cache per user; once a count is too large, higher counts are skipped.
+  Smoke (Qwen3.5 0.8B, M5 Max) aggregate out tok/s with 128-token outputs is prefill-bound: 1 vs 4 users ~55 -> 62
+  (llama.cpp), 85 -> 101 (MLX). Use the default --max-tokens for real decode scaling.
+
 ## Gotchas found so far
 - **LM Studio 0.4.x does not index symlinked models**, so they don't show up in `lms ls`. Hard links work.
   `lms import -l` also writes a *relative* symlink if you give it a relative path, which is broken.

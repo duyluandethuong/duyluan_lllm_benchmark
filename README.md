@@ -41,6 +41,7 @@ uv run bench.py -m smoke                    # 0.5 GB end-to-end check on a new m
 uv run bench.py                             # choose models interactively
 uv run bench.py -m qwen3.8-27b,qwen3.6-35b-a3b
 uv run bench.py --all -e llamacpp,lmstudio  # every model, chosen engines only
+uv run bench.py -m gemma4-e4b --users all   # 1, 2, 3, 4, 5, 10, 20, 40, 50 concurrent users
 ```
 
 | Option | Default | |
@@ -49,7 +50,8 @@ uv run bench.py --all -e llamacpp,lmstudio  # every model, chosen engines only
 | `--all` | | every model except `smoke` |
 | `-e/--engine` | all available | `llamacpp`, `mlx`, `lmstudio` (both formats), `lmstudio-gguf`, `lmstudio-mlx` |
 | `--runs` | 1 | timed runs per model+engine, averaged |
-| `--ctx` | 32768 | context size |
+| `--users` | 1 | concurrent users, e.g. `1,4,10`, or `all` = 1,2,3,4,5,10,20,40,50. Each count reloads the model with one slot per user and sends that many requests at once |
+| `--ctx` | 32768 | context size per user |
 | `--max-tokens` | 4096 | output cap |
 | `--reasoning` | off | `on` lets thinking models think (output tokens then include reasoning) |
 | `--models-dir` | `./models` | also env `LLMBENCH_MODELS_DIR` |

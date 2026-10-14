@@ -192,7 +192,8 @@ class LmStudio(Backend):
         self._ensure_server()
         key = self._import(model, path)
         self._lms("unload", "--all")  # a clean slate: nothing else holding memory
-        args = ["load", key, "-y", "--identifier", IDENTIFIER, "-c", str(s.ctx_size), "--parallel", "1"]
+        args = ["load", key, "-y", "--identifier", IDENTIFIER, "-c", str(s.ctx_size * s.users),
+                "--parallel", str(s.users)]  # unified KV cache: -c is shared by all slots
         if placement in ("GPU", "GPU (unified)"):
             args += ["--gpu", "max"]
         elif placement == "CPU":

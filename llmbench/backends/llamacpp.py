@@ -52,7 +52,7 @@ class LlamaCpp(Backend):
         self.url = f"http://127.0.0.1:{port}"
         cmd = [
             self.binary, "-m", str(path), "--host", "127.0.0.1", "--port", str(port),
-            "-c", str(s.ctx_size), "-np", "1",      # one slot gets the whole context
+            "-c", str(s.ctx_size * s.users), "-np", str(s.users),  # one slot per user, ctx each
             "--cache-ram", "0", "--no-webui",        # no host-side prompt cache between runs
             "-rea", "on" if s.reasoning else "off",
         ]

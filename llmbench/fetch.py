@@ -84,11 +84,11 @@ def kv_cache_gb(arch: Arch | None, ctx: int, weights: float) -> float:
 OVERHEAD_GB = 1.5  # compute buffers, runtime, activations during a 20K prefill
 
 
-def estimate_gb(art: Artifact, arch: Arch | None, ctx: int, models_dir: Path) -> float | None:
+def estimate_gb(art: Artifact, arch: Arch | None, ctx: int, models_dir: Path, users: int = 1) -> float | None:
     w = weights_gb(art, models_dir)
     if w is None:
         return None
-    return w + kv_cache_gb(arch, ctx, w) + OVERHEAD_GB
+    return w + users * kv_cache_gb(arch, ctx, w) + OVERHEAD_GB  # one ctx-sized cache per user
 
 
 def missing(art: Artifact, models_dir: Path) -> list[str]:

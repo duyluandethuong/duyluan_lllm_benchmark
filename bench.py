@@ -5,6 +5,7 @@
     uv run bench.py --all -e llamacpp,mlx   # all models, chosen engines
     uv run bench.py --list                  # show models, engines, hardware
     uv run bench.py -m smoke                # quick end-to-end check (~0.5 GB)
+    uv run bench.py -m gemma4-e4b --users all   # 1, 2, 3, 4, 5, 10, 20, 40, 50 concurrent users
 
 See README.md for the full option list.
 """
@@ -14,6 +15,8 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
+from dataclasses import replace
 from pathlib import Path
 
 import psutil
@@ -23,7 +26,21 @@ from llmbench.backends import ALIASES, TooLarge, all_backends
 from llmbench.backends.lmstudio import loaded_elsewhere
 from llmbench.config import Model, Settings, load_models
 from llmbench.hardware import detect
-from llmbench.report import TOO_LARGE, SUMMARY_HEADER, Result, md_table, summary_rows, write
+from llmbench.report import TOO_LARGE, SUMMARY_HEADER, Result, Round, md_table, summary_rows, write
+
+USER_LEVELS = [1, 2, 3, 4, 5, 10, 20, 40, 50]
+
+
+def user_levels(value: str) -> list[int]:
+    if value == "all":
+        return USER_LEVELS
+    try:
+        levels = sorted({int(x) for x in value.split(",") if x.strip()})
+    except ValueError:
+        levels = []
+    if not levels or levels[0] < 1:
+        raise argparse.ArgumentTypeError(f"expected 'all' or numbers like 1,2,4 (got {value!r})")
+    return levels
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,7 +51,10 @@ def parse_args() -> argparse.Namespace:
                                           "(default: all available)")
     p.add_argument("--list", action="store_true", help="list models/engines/hardware and exit")
     p.add_argument("--runs", type=int, default=1, help="timed runs per model+engine, averaged (default 1)")
-    p.add_argument("--ctx", type=int, default=32768, help="context size (default 32768)")
+    p.add_argument("--users", type=user_levels, default=[1],
+                   help="concurrent users, comma-separated, or 'all' = 1,2,3,4,5,10,20,40,50 (default 1). "
+                        "Each count is a separate load with one slot per user")
+    p.add_argument("--ctx", type=int, default=32768, help="context size per user (default 32768)")
     p.add_argument("--max-tokens", type=int, default=4096, help="max generated tokens (default 4096)")
     p.add_argument("--reasoning", choices=["on", "off"], default="off", help="thinking mode (default off)")
     p.add_argument("--models-dir", type=Path, default=Path(os.environ.get("LLMBENCH_MODELS_DIR", ROOT / "models")),
@@ -84,8 +104,8 @@ def pick_engines(args, backends):
 
 def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result:
     art = model.artifacts[backend.fmt]
-    res = Result(model.name, backend.label, art.quant, "OK")
-    res.est_gb = fetch.estimate_gb(art, model.arch, s.ctx_size, args.models_dir)
+    res = Result(model.name, backend.label, art.quant, "OK", users=s.users)
+    res.est_gb = fetch.estimate_gb(art, model.arch, s.ctx_size, args.models_dir, s.users)
     placement = hw.placement(res.est_gb) if res.est_gb is not None else "?"
     if res.est_gb is not None and placement is None and not args.force:
         res.status = TOO_LARGE
@@ -103,10 +123,19 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
         print(f"  loading ({res.placement}, ~{res.est_gb or 0:.1f} GB)...", flush=True)
         res.load_s = backend.load(model, path, res.placement, s)
         for i in range(1, s.runs + 1):
-            m = backend.run(prompt.for_run(text), s)
-            res.runs.append(m)
-            print(f"  run {i}: in {m.tokens_in:,} | out {m.tokens_out:,} | TTFT {m.ttft_s:.2f}s | "
-                  f"prefill {m.prefill_tps or 0:,.1f} tok/s | decode {m.decode_tps:.1f} tok/s", flush=True)
+            t0 = time.perf_counter()
+            ms = backend.run_batch([prompt.for_run(text) for _ in range(s.users)], s)
+            rd = Round(time.perf_counter() - t0, ms)
+            res.rounds.append(rd)
+            if s.users == 1:
+                m = ms[0]
+                print(f"  run {i}: in {m.tokens_in:,} | out {m.tokens_out:,} | TTFT {m.ttft_s:.2f}s | "
+                      f"prefill {m.prefill_tps or 0:,.1f} tok/s | decode {m.decode_tps:.1f} tok/s", flush=True)
+            else:
+                print(f"  run {i}: {s.users} users | out {sum(m.tokens_out for m in ms):,} | "
+                      f"TTFT avg {sum(m.ttft_s for m in ms) / len(ms):.2f}s max {rd.ttft_max:.2f}s | "
+                      f"decode {sum(m.decode_tps for m in ms) / len(ms):.1f} tok/s per user | "
+                      f"aggregate {rd.agg_tps:,.1f} tok/s | {rd.wall_s:.1f}s", flush=True)
     except TooLarge as e:
         res.status = TOO_LARGE
         print(f"  {TOO_LARGE}: {e}")
@@ -118,7 +147,7 @@ def bench_one(model: Model, backend, hw, s: Settings, args, text: str) -> Result
         print(f"  {res.status}")
     finally:
         backend.unload()
-    if res.runs:
+    if res.rounds and s.users == 1:
         res.bench_prefill_tps = backend.bench_prefill(path, res.placement, res.runs[0].tokens_in)
         if res.bench_prefill_tps:
             print(f"  llama-bench prefill {res.bench_prefill_tps:,.1f} tok/s", flush=True)
@@ -212,8 +241,11 @@ def main() -> None:
             for b in engines:
                 if b.fmt not in model.artifacts:
                     continue
-                print(f"\n=== {model.name} · {b.label}")
-                results.append(bench_one(model, b, hw, s, args, text))
+                for n in [1] if args.download_only else args.users:
+                    print(f"\n=== {model.name} · {b.label}" + (f" · {n} user(s)" if args.users != [1] else ""))
+                    results.append(bench_one(model, b, hw, replace(s, users=n), args, text))
+                    if results[-1].status == TOO_LARGE:
+                        break  # more users only need more memory
     except KeyboardInterrupt:
         print("\nInterrupted; writing partial report.")
     finally:
