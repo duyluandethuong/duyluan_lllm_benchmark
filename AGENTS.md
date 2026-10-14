@@ -40,7 +40,12 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
 - `--users N` (2026-10-14): N copies of the prompt (each with its own Request id) sent at the same moment to one
   loaded model, reloaded per N. llama.cpp: `-np N -c ctx*N`. LM Studio: `--parallel N -c ctx*N` (assumes its unified
   KV cache shares -c across slots; not verified). mlx-lm has no slots: mlx_worker.py runs all prompts in one
-  `BatchGenerator` (prefill batches of 8, so users 9+ wait; MLX per-user prefill = tokens in / TTFT).
+  `BatchGenerator` (prefill batches of 8, so users 9+ wait). With 2+ users prefill is tokens in / TTFT for every engine:
+  llama.cpp's per-slot `prompt_per_second` was ~2x the client-side rate and MLX has none in a batch.
+  `run_batch` waits in 0.5 s steps: a blocking wait (`pool.map`, or the exit of `with ThreadPoolExecutor`) only sees
+  Ctrl-C once the whole round is done (it hung for minutes).
+  Testing Ctrl-C from an agent shell: `cmd &` in a non-interactive shell starts with SIGINT *ignored*, so `kill -INT`
+  does nothing and looks like a hang. Launch via Popen(preexec_fn=lambda: signal.signal(SIGINT, SIG_DFL)).
   Fit check counts one ctx-sized KV cache per user; once a count is too large, higher counts are skipped.
   Smoke (Qwen3.5 0.8B, M5 Max) aggregate out tok/s with 128-token outputs is prefill-bound: 1 vs 4 users ~55 -> 62
   (llama.cpp), 85 -> 101 (MLX). Use the default --max-tokens for real decode scaling.
@@ -145,3 +150,14 @@ New engine: subclass `Backend`, add it to `all_backends()` in `backends/__init__
   - mlx-lm's first request after load pays Metal kernel compilation: prefill run 1 can be ~3x slower than runs 2–3
     (Qwen3.6 A3B: 1,093 vs ~3,900). The report averages runs, so also look at the median.
   - Back-to-back llama.cpp runs throttle a little (Gemma E4B decode 85 -> 81 -> 76 over 3 runs).
+- 2026-10-13: first clean run on the Mac Studio (M5 Ultra, 256 GB): `--all -e llamacpp,mlx --runs 1`, idle machine,
+  llama-server b11539 from `~/ai/macstudio_llm/tools/llama-b11539/` (pass `--llama-server`). Local results:
+  results/2026-10-13_185604_duyluanM5Ultra. That Mac also runs a llama-swap server (`~/ai/macstudio_llm/serving/llama-swap.yaml`,
+  port 8080, MLX models kept resident, ~100 GB). Fine to leave up while idle; the benchmark doesn't use it.
+  **But it gets outside traffic** (clients come in over [::1], likely a tunnel): on 2026-10-14 a request stream to
+  qwen3.8:8 pinned the GPU at 100% and a Gemma E4B `--users` run collapsed at 20 users (aggregate 299 -> 76 tok/s).
+  `warn_if_busy` misses it (CPU stays idle; it's GPU load). Before a run check
+  `ioreg -r -d 1 -c IOAccelerator | grep -o '"Device Utilization %"=[0-9]*'` is near 0 and
+  `lsof -nP -iTCP:8080 -sTCP:ESTABLISHED` is empty.
+  The mlx-lm first-request penalty is bigger on small models there: Gemma 4 E2B MLX prefill 9.3K, 19.6K, 37.1K tok/s
+  over three runs.

@@ -9,8 +9,8 @@ import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from concurrent.futures import ThreadPoolExecutor, wait
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Iterator
 
@@ -68,8 +68,20 @@ class Backend(ABC):
             start.wait()
             return self.run(p, s)
 
-        with ThreadPoolExecutor(len(prompts)) as pool:
-            return list(pool.map(one, prompts))
+        # Ctrl-C must stop a round: a blocking wait (pool.map, or the exit of `with`) only sees the
+        # signal once every request is done. Wait in short steps instead; on interrupt bench.py calls
+        # unload(), which stops the server and ends the threads.
+        pool = ThreadPoolExecutor(len(prompts))
+        try:
+            futures = [pool.submit(one, p) for p in prompts]
+            while wait(futures, timeout=0.5).not_done:
+                pass
+            ms = [f.result() for f in futures]
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+        # Per-slot engine prefill rates aren't comparable across engines (mlx-lm has none in a batch),
+        # so with several users prefill is client-side for every engine: tokens in / TTFT.
+        return [replace(m, prefill_tps=m.tokens_in / m.ttft_s if m.ttft_s else None) for m in ms]
 
     def unload(self) -> None:
         """Free the model. Must be safe to call twice or after a failed load."""

@@ -136,8 +136,8 @@ def write(results: list[Result], hw: Hardware, s: Settings, engines: dict[str, s
   the server is stopped. A cross-check: if it is far above the server's prefill, the server path is stalling.
 - **Decode tok/s**: generation speed reported by the engine, excluding prefill.
 - **Users**: requests sent at the same moment to one loaded model (one server slot each, context {s.ctx_size:,} per user;
-  mlx-lm: one continuous batch). TTFT, prefill and decode are per user, averaged over users; MLX with several users
-  has no engine prefill rate, so its prefill is tokens in ÷ TTFT.
+  mlx-lm: one continuous batch). TTFT, prefill and decode are per user, averaged over users. With several users,
+  prefill is tokens in ÷ TTFT for every engine (includes waiting for other users' prompts), not the engine's rate.
 - **TTFT max**: the slowest user's TTFT (the last one to get a first token).
 - **Agg. out tok/s**: output tokens of all users ÷ wall time of the run (first request sent to last one finished).
 - **Total (s)**: wall time of the run.
